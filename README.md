@@ -14,7 +14,7 @@ Original [KinectFusion](http://research.microsoft.com/en-us/projects/surfacereco
 
 Original code Copyright (c) 2011, Willow Garage, Inc; written mostly by Anatoly Baskeheev, Itseez Ltd.
 
-New code Copyright (c) 2014, Marsette Vona as noted.  All code is BSD Licensed.
+New code Copyright (c) 2017, Marsette Vona, Dimitrios Kanoulas as noted.  All code is BSD Licensed.
 
 ## Changes vs KinFu from PCL
 *   added moving volume features

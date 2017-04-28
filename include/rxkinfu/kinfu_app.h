@@ -39,7 +39,7 @@
 #define MVKINFU_KINFU_APP_H
 
 #include "kinfu_tracker.h"
-#include "containers.h"
+#include "cuda/containers.h"
 #include "tsdf_volume_host.h"
 #include "image_view.h"
 #include "cloud_view.h"

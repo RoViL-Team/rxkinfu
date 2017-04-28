@@ -39,7 +39,7 @@
 #define MVKINFU_RAYCASTER_H_
 
 #include <pcl/point_types.h>
-#include "device_array.h"
+#include "cuda/device_array.h"
 #include "pixel_rgb.h"
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Geometry>

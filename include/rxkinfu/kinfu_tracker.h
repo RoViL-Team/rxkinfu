@@ -40,7 +40,7 @@
 #ifndef MVKINFU_KINFUTRACKER_H_
 #define MVKINFU_KINFUTRACKER_H_
 
-#include "device_array.h"
+#include "cuda/device_array.h"
 #include "pixel_rgb.h"
 #include "tsdf_volume.h"
 #include "raycaster.h"

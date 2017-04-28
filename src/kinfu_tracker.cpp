@@ -45,7 +45,7 @@
 
 #include <pcl/common/time.h>
 #include "kinfu_tracker.h"
-#include "device.h"
+#include "cuda/device.h"
 
 #include <Eigen/Core>
 #include <Eigen/SVD>

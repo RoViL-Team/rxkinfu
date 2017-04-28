@@ -38,7 +38,7 @@
 #ifndef MVKINFU_MARCHING_CUBES_H_
 #define MVKINFU_MARCHING_CUBES_H_
 
-#include "device_array.h"
+#include "cuda/device_array.h"
 #include <Eigen/Core>
 
 namespace rxkinfu

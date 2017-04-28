@@ -36,7 +36,7 @@
  */
 
 #include "tsdf_volume.h"
-#include "device.h"
+#include "cuda/device.h"
 #include <algorithm>
 #include <Eigen/Core>
 

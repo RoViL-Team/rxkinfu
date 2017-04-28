@@ -37,7 +37,7 @@
 
 #include "raycaster.h"
 #include "tsdf_volume.h"
-#include "device.h"
+#include "cuda/device.h"
 
 using namespace pcl;
 using namespace rxkinfu;

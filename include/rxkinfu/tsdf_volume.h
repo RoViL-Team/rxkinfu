@@ -38,7 +38,7 @@
 #ifndef MVKINFU_TSDF_VOLUME_H_
 #define MVKINFU_TSDF_VOLUME_H_
 
-#include "device_array.h"
+#include "cuda/device_array.h"
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <Eigen/Core>

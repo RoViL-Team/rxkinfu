@@ -37,7 +37,7 @@
 
 #include "kinfu_tracker.h"
 #include "marching_cubes.h"
-#include "device.h"
+#include "cuda/device.h"
 
 using namespace pcl;
 using namespace rxkinfu;
