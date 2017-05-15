@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>rxkinfu_ros</name>
+  <version>1.0.0</version>
+  <description>The rxkinfu ROS package</description>
+
+  <maintainer email="dkanoulas@gmail.com">dkanou</maintainer>
+
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>roslib</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>rxkinfu</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>rxkinfu</run_depend>
+</package>
