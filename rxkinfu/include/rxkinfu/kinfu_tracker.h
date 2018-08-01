@@ -164,12 +164,12 @@ namespace rxkinfu
      * \param[in] time Index of frame for which camera pose is returned.
      * \return camera pose
      */
-    virtual Eigen::Affine3f
-      getCameraPose (int time = -1) const;
+    virtual void
+    getCameraPose (Eigen::Affine3f &cam_pose, int time = -1) const;
     
     /** \brief Returns number of poses including initial */
     virtual size_t
-      getNumberOfPoses () const;
+    getNumberOfPoses () const;
     
     /** \brief Returns TSDF volume storage */
     const TsdfVolume& volume() const;
@@ -181,13 +181,28 @@ namespace rxkinfu
      * \param[out] view output array with image
      */
     virtual void
-      getImage (View& view) const;
+    getImage (View& view) const;
     
+    //davidjones: MODIFIED FOR COLOR
+    /** \brief Renders 3D scene to display to human
+      * \param[out] view output array with image
+      */
+    //void
+    //getImage (View& view, const View& color) const;
+    
+    //davidjones: MODIFIED FOR COLOR
+    /** \brief Renders 3D scene to display to human
+      * \param[out] view output array with image
+      * \param[in] light_source_pose Pose of light source for computing illumination
+      */
+    //void
+    //getImage (View& view, const View& color, const Eigen::Vector3f& light_source_pose) const;
+        
     /** \brief Returns point cloud abserved from last camera pose
      * \param[out] cloud output array for points
      */
     virtual void
-      getLastFrameCloud (DeviceArray2D<PointType>& cloud) const;
+    getLastFrameCloud (DeviceArray2D<PointType>& cloud) const;
     
     /** \brief Returns point cloud abserved from last camera pose
      * \param[out] normals output array for normals
@@ -196,10 +211,11 @@ namespace rxkinfu
       getLastFrameNormals (DeviceArray2D<NormalType>& normals) const;
     
     /** \brief Disables ICP forever */
-    virtual void disableIcp();
+    virtual void
+    disableIcp();
 
     virtual void
-      saveAllPoses (int frame_number = -1,
+    saveAllPoses (int frame_number = -1,
                     const std::string& logfile = "kinfu_poses.txt") const;
 
     /** Moving volume policies. */
@@ -238,9 +254,11 @@ namespace rxkinfu
      *
      * \param[in] policy the new policy, default FIX_VOLUME
      */
-    virtual void setMovingVolumePolicy (MovingVolumePolicy policy = FIX_VOLUME);
+    virtual void
+    setMovingVolumePolicy (MovingVolumePolicy policy = FIX_VOLUME);
 
-    virtual int getMovingVolumePolicy();
+    virtual int
+    getMovingVolumePolicy();
 
     /** \brief Set the moving volume down vector.
      *
@@ -303,7 +321,8 @@ namespace rxkinfu
      *
      * \return the moving volume relative pose
      */
-    virtual Eigen::Affine3f getRelativeVolumePose (int time = -1) const;
+    virtual void
+    getRelativeVolumePose (Eigen::Affine3f &rel_vol_pose, int time = -1) const;
 
     /** \brief Returns timestamp for indicated frame.
      *

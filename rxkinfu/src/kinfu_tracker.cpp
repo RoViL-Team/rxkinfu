@@ -169,20 +169,34 @@ void KinfuTracker::setMovingVolumeDown (const Vector3f &d)
 void KinfuTracker::setMovingVolumeFwd (const Vector3f &f)
 { moving_volume_fwd_ = f; }
 
+///////////////////////////////////////////////////////////////////////////////
 void KinfuTracker::setMovingVolumeDistanceThresh (float t)
-{ moving_volume_distance_thresh_ = t; }
+{
+  moving_volume_distance_thresh_ = t;
+}
 
+///////////////////////////////////////////////////////////////////////////////
 void KinfuTracker::setMovingVolumeAngleThresh (float t)
-{ moving_volume_angle_thresh_ = t; }
+{
+  moving_volume_angle_thresh_ = t;
+}
 
+///////////////////////////////////////////////////////////////////////////////
 void KinfuTracker::setMovingVolumeCheckNN (bool check)
-{ moving_volume_checknn_ = check; }
+{
+  moving_volume_checknn_ = check;
+}
 
+///////////////////////////////////////////////////////////////////////////////
 void KinfuTracker::setMovingVolumeCheckValid (bool check)
-{ moving_volume_checkvalid_ = check; }
+{
+  moving_volume_checkvalid_ = check;
+}
 
-Eigen::Affine3f KinfuTracker::getRelativeVolumePose (int time) const {
-
+///////////////////////////////////////////////////////////////////////////////
+void
+KinfuTracker::getRelativeVolumePose (Eigen::Affine3f &rel_vol_pose, int time) const
+{
   if (rmats_.size() != rmats_vol_.size())
     std::cerr << "ERROR rmats_ and rmats_vol_ differ in size\n";
 
@@ -192,14 +206,14 @@ Eigen::Affine3f KinfuTracker::getRelativeVolumePose (int time) const {
   if (time > static_cast<int>(rmats_vol_.size ()) || time < 0)
     time = rmats_vol_.size () - 1;
 
-  Eigen::Affine3f aff = Eigen::Affine3f::Identity();
+  rel_vol_pose = Eigen::Affine3f::Identity();
 
   if (time >= 0) {
-    aff.linear () = rmats_vol_[time];
-    aff.translation () = tvecs_vol_[time];
+    rel_vol_pose.linear () = rmats_vol_[time];
+    rel_vol_pose.translation () = tvecs_vol_[time];
   }
 
-  return (aff);
+  return;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -217,7 +231,10 @@ double KinfuTracker::getTimestamp(int time) const {
   else return stamps_[0];
 }
 
-void KinfuTracker::printMovingVolumeStats () const {
+////////////////////////////////////////////////////////////////////////////////
+void
+KinfuTracker::printMovingVolumeStats () const
+{
   std::cout
     << "moving molume " 
     << "distance threshold = " << moving_volume_distance_thresh_
@@ -489,7 +506,8 @@ KinfuTracker::reset (bool clear,
 //    std::cout << "reset at time " << global_time_ <<  std::endl;
     num_resets_++;
   }
-
+  
+  //std::cout << "DEBUG: rmats_.push_back (init_Rcam_);" << std::endl;
   rmats_.push_back (init_Rcam_);
   tvecs_.push_back (init_tcam_);
   stamps_.push_back (NAN);
@@ -805,16 +823,29 @@ KinfuTracker::execute(const DepthMap& depth_raw, double timestamp,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Affine3f
-KinfuTracker::getCameraPose (int time) const
+void
+KinfuTracker::getCameraPose (Eigen::Affine3f &cam_pose, int time) const
 {
+  // DEBUG
+  //std::cout << "DEBUG: KinfuTracker::getCameraPose" << std::endl;
+  //std::cout << "DEBUG: time: " << time << std::endl;
+  //std::cout << "DEBUG: rmats_.size (): " << rmats_.size () << std::endl;
+  //std::cout << "DEBUG: tvecs_.size (): " << tvecs_.size () << std::endl;
+  
   if (time > (int)rmats_.size () || time < 0)
     time = rmats_.size () - 1;
-
-  Eigen::Affine3f aff;
-  aff.linear () = rmats_[time];
-  aff.translation () = tvecs_[time];
-  return (aff);
+  
+  // DEBUG
+  //std::cout << "DEBUG: KinfuTracker::getCameraPose 1" << std::endl;
+  //std::cout << "DEBUG: rmats_[time]: " << rmats_[time] << std::endl;
+  //std::cout << "DEBUG: tvecs_[time]: " << tvecs_[time] << std::endl;
+  cam_pose.linear () = rmats_[time];
+  cam_pose.translation () = tvecs_[time];
+  
+  // DEBUG
+  //std::cout << "DEBUG: KinfuTracker::getCameraPose 2" << std::endl;  
+  
+  return;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -854,6 +885,40 @@ KinfuTracker::getImage (View& view) const
   view.create (rows_, cols_);
   generateImage (vmaps_g_prev_[0], nmaps_g_prev_[0], light, view);
 }
+
+//davidjones: MODIFIED FOR COLOR
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//void
+//KinfuTracker::getImage (View& view, const View& color) const
+//{
+//  getImage (view, color, tvecs_[tvecs_.size () - 1]);
+//  //KinfuTracker::getImage (view, color, tsdf_volume_->getSize() * (-3.f));
+//}
+
+//davidjones: MODIFIED FOR COLOR
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//void
+//KinfuTracker::getImage (View& view_arg, const View& color, const Eigen::Vector3f& light_source_pose) const
+//{
+//  //Eigen::Vector3f light_source_pose = tvecs_[tvecs_.size () - 1];
+//
+//  LightSource light;
+//  light.number = 1;
+//  light.pos[0] = device_cast<const float3>(light_source_pose);
+//
+//  view_arg.create (rows_, cols_);
+//  generateImage (vmaps_g_prev_[0], nmaps_g_prev_[0], color, light, view_arg);
+///*  
+//  device::LightSource light;
+//  light.number = 1;
+//  light.pos[0] = device_cast<const float3>(light_source_pose);
+//  view_arg.create (rows_, cols_);
+//  //bool test = true;
+//  //  while(true)
+//  //    test = test;
+//  generateImage (vmaps_g_prev_[0], nmaps_g_prev_[0], color, light, view_arg);
+//  */
+//}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
@@ -914,8 +979,10 @@ void KinfuTracker::saveAllPoses(int frame_number,
   Eigen::Affine3f vol_pose(Eigen::Affine3f::Identity());
   for(int i = 0; i < frame_number; ++i) {
     double stamp = getTimestamp(i);
-    Eigen::Affine3f camera_pose = getCameraPose(i);
-    Eigen::Affine3f rel_vol_pose = getRelativeVolumePose(i);
+    Eigen::Affine3f camera_pose;
+    getCameraPose (camera_pose, i);
+    Eigen::Affine3f rel_vol_pose;
+    getRelativeVolumePose(rel_vol_pose, i);
     vol_pose = vol_pose * rel_vol_pose;
     Eigen::Affine3f pose = vol_pose * camera_pose;
     writePose(path_file_stream, stamp, pose);

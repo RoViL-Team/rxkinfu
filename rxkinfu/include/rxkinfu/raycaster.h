@@ -90,6 +90,8 @@ namespace rxkinfu
      */
     virtual void
     generateSceneView(View& view) const;
+    //virtual void
+    //generateSceneView(View& view, View color_device_in) const; //davidjones: MODIFIED FOR COLOR
     
     /** \brief Generates scene view using data raycasted by run method. So call it before.
      * \param[out] view output array for RGB image
@@ -97,6 +99,8 @@ namespace rxkinfu
      */
     virtual void
     generateSceneView(View& view, const Eigen::Vector3f& light_source_pose) const;
+    //virtual void
+    //generateSceneView(View& view, View color_device_in, const Eigen::Vector3f& light_source_pose) const;  //davidjones: MODIFIED FOR COLOR
     
     /** \brief Generates depth image using data raycasted by run method. So call it before.
      * \param[out] view output array for depth image        

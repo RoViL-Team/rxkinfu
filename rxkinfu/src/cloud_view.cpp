@@ -73,7 +73,8 @@ CloudView::CloudView(const char *name, bool show_cloud) {
   }
 }
 
-void CloudView::setViewerPose(const Affine3f& pose) {
+void CloudView::setViewerPose(const Affine3f& pose)
+{
   if (!cloud_viewer) return;
   Vector3f loc = pose*Vector3f(0,0,0);
   Vector3f look = pose.rotation()*Vector3f(0,0,1)+loc;
@@ -82,9 +83,12 @@ void CloudView::setViewerPose(const Affine3f& pose) {
     (loc[0], loc[1], loc[2], look[0], look[1], look[2], up[0], up[1], up[2]);
 }
 
-Affine3f CloudView::getViewerPose() {
-  Affine3f pose;
-  if (cloud_viewer) {
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::getViewerPose (Eigen::Affine3f& pose)
+{
+  if (cloud_viewer)
+  {
     pose = cloud_viewer->getViewerPose();
     Matrix3f rotation = pose.linear();
     Matrix3f axis_reorder;  
@@ -99,15 +103,22 @@ Affine3f CloudView::getViewerPose() {
     rotation = rotation*axis_reorder;
     pose.linear() = rotation;
   }
-  return pose;
+  
+  return;
 }
 
-void CloudView::resetViewerPose()
-{ if (cloud_viewer) cloud_viewer->resetCamera(); }
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::resetViewerPose ()
+{
+  if (cloud_viewer) cloud_viewer->resetCamera();
+}
 
-void CloudView::showCloud(KinfuTracker &kinfu, const std::string id,
-                          int triangle_size) {
-
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::showCloud (KinfuTracker &kinfu, const std::string id,
+                      int triangle_size)
+{
   kinfu.getLastFrameCloud(cloud_device);
 
   int c; cloud_device.download(cloud_ptr->points, c);
@@ -118,9 +129,11 @@ void CloudView::showCloud(KinfuTracker &kinfu, const std::string id,
   showCloud(cloud_ptr, id, triangle_size);
 }
 
-void CloudView::showCloud(RayCaster &raycaster, const std::string id,
-                          int triangle_size) {
-
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::showCloud (RayCaster &raycaster, const std::string id,
+                      int triangle_size)
+{
   convertMapToOranizedCloud(raycaster.getVertexMap(), cloud_device);
 
   int c; cloud_device.download(cloud_ptr->points, c);
@@ -131,18 +144,20 @@ void CloudView::showCloud(RayCaster &raycaster, const std::string id,
   showCloud(cloud_ptr, id, triangle_size);
 }
 
-void CloudView::showCloud(PointCloud<PointXYZ>::Ptr cloud_ptr,
-                          const std::string id, int triangle_size) {
-
+///////////////////////////////////////////////////////////////////////////////
+void CloudView::showCloud (PointCloud<PointXYZ>::Ptr cloud_ptr,
+                           const std::string id, int triangle_size)
+{
   if (!cloud_viewer) return;
-
-  if (triangle_size <= 0) {
-
+  
+  std::cout << "triangle_size: " << triangle_size << std::endl;
+  if (triangle_size <= 0)
+  {
     if (!cloud_viewer->updatePointCloud<PointXYZ>(cloud_ptr, id))
       cloud_viewer->addPointCloud<PointXYZ>(cloud_ptr, id);
-
-  } else {
-
+  }
+  else
+  {
     OrganizedFastMesh<PointXYZ> ofm;
     ofm.setTrianglePixelSize(triangle_size);
     ofm.setMaxEdgeLength(0.1f);
@@ -160,42 +175,61 @@ void CloudView::showCloud(PointCloud<PointXYZ>::Ptr cloud_ptr,
       cloud_viewer->removePointCloud(id);
     last_triangle_size[id] = triangle_size;
 
-    if (verts.size() > 3) {
+    if (verts.size() > 3)
+    {
+      std::cout << "cloud_ptr size: " << cloud_ptr->points.size() << std::endl;
       if (!cloud_viewer->updatePolygonMesh<PointXYZ>(cloud_ptr, verts, id))
+      {
         cloud_viewer->addPolygonMesh<PointXYZ>(cloud_ptr, verts, id);
-    } else cloud_viewer->removePointCloud(id);
+      
+        std::cout << "cloud_viewer id: " << id << std::endl;
+      }
+    }
+    else
+    {
+      cloud_viewer->removePointCloud(id);
+    }
   }
-
+  
   cloud_viewer->setPointCloudRenderingProperties
     (pv::PCL_VISUALIZER_COLOR,
      CLOUD_R/255.0, CLOUD_G/255.0, CLOUD_B/255.0,
      id);
 }
 
-void CloudView::removeCloud(const std::string id) {
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::removeCloud (const std::string id)
+{
   if (cloud_viewer) cloud_viewer->removePointCloud(id);
   last_triangle_size.erase(id);
 }
 
-static void addLine(vtkSmartPointer<vtkAppendPolyData> polydata,
-                    vtkSmartPointer<vtkUnsignedCharArray> colors,
-                    float x1, float y1, float z1, float x2, float y2, float z2,
-                    float r, float g, float b) {
+///////////////////////////////////////////////////////////////////////////////
+static
+void addLine (vtkSmartPointer<vtkAppendPolyData> polydata,
+              vtkSmartPointer<vtkUnsignedCharArray> colors,
+              float x1, float y1, float z1, float x2, float y2, float z2,
+              float r, float g, float b)
+{
   vtkSmartPointer<vtkLineSource> line = vtkSmartPointer<vtkLineSource>::New();
   line->SetPoint1(x1, y1, z1);
   line->SetPoint2(x2, y2, z2);
   line->Update();
-  polydata->AddInput(line->GetOutput ());
+  polydata->AddInputData(line->GetOutput ());
+  //polydata->AddInput(line->GetOutput ());
   unsigned char rgb[] = {r*255.0, g*255.0, b*255.0};
   colors->InsertNextTupleValue(rgb);
 }
 
-void CloudView::showCamera(const Affine3f &pose, const std::string id,
-                           float near, float far,
-                           float axes, float fr, float fg, float fb,
-                           int rows, int cols,
-                           float fx, float fy, float cx, float cy) {
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::showCamera (const Affine3f &pose, const std::string id,
+                       float near, float far,
+                       float axes, float fr, float fg, float fb,
+                       int rows, int cols,
+                       float fx, float fy, float cx, float cy)
+{  
   //first try a pose update to an existing shape
   if (!cloud_viewer || cloud_viewer->updateShapePose(id, pose)) return;
   
@@ -255,13 +289,19 @@ void CloudView::showCamera(const Affine3f &pose, const std::string id,
   cloud_viewer->updateShapePose(id, pose);
 }
 
-void CloudView::removeCamera(const std::string id)
-{ if (cloud_viewer) cloud_viewer->removeShape(id); }
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::removeCamera (const std::string id)
+{
+  if (cloud_viewer) cloud_viewer->removeShape(id);
+}
 
-void CloudView::showBox(const Affine3f &pose, float *bflrkt,
-                        const std::string id,
-                        float axes, float br, float bg, float bb) {
-
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::showBox (const Affine3f &pose, float *bflrkt,
+                    const std::string id,
+                    float axes, float br, float bg, float bb)
+{
   //first try a pose update to an existing shape
   if (!cloud_viewer || cloud_viewer->updateShapePose(id, pose)) return;
   
@@ -312,14 +352,20 @@ void CloudView::showBox(const Affine3f &pose, float *bflrkt,
 
   cloud_viewer->updateShapePose(id, pose);
 }
-             
-void CloudView::removeBox(const std::string id)
-{ if (cloud_viewer) cloud_viewer->removeShape(id); }
+ 
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::removeBox (const std::string id)
+{
+  if (cloud_viewer) cloud_viewer->removeShape(id);
+}
 
-void CloudView::showArrow(const Vector3f &v, const Vector3f &p,
-                          float r, float g, float b,
-                          bool display_length, const std::string id) {
-  
+///////////////////////////////////////////////////////////////////////////////
+void
+CloudView::showArrow (const Vector3f &v, const Vector3f &p,
+                      float r, float g, float b,
+                      bool display_length, const std::string id)
+{  
   if (!cloud_viewer) return;
   
   cloud_viewer->removeShape(id);
@@ -453,21 +499,31 @@ void SceneCloudView::showMesh(KinfuTracker& kinfu) {
   }
 }
 
-void SceneCloudView::toggleCube(const Vector3f& size) {
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::toggleCube (const Vector3f& size)
+{
 
   if (!cloud_viewer) return;
-
+  
   cube_added = !cube_added;
 
-  if (!cube_added) {
-    cloud_viewer->removeCoordinateSystem(0);
-    cloud_viewer->removeShape("cube");
-  } else {
-    cloud_viewer->addCoordinateSystem(1.0,0);
-    cloud_viewer->addCube(size*0.5, Quaternionf::Identity(),
-                          size(0), size(1), size(2));
-    cloud_viewer->setShapeRenderingProperties(pv::PCL_VISUALIZER_LINE_WIDTH,
-                                              LINE_WIDTH, "cube");
+  if (!cube_added)
+  {
+    cloud_viewer->removeCoordinateSystem (0);
+    cloud_viewer->removeShape ("cube");
+  }
+  else
+  {
+    // TBD: this does not work in kinetic/Ubuntu 16.04
+    cloud_viewer->addCoordinateSystem(1.0,"cube",0);
+    
+    cloud_viewer->addCube (size*0.5, Quaternionf::Identity(),
+                           size(0), size(1), size(2));
+    
+    cloud_viewer->setShapeRenderingProperties (pv::PCL_VISUALIZER_LINE_WIDTH,
+                                               LINE_WIDTH, "cube");
+    
     cloud_viewer->setShapeRenderingProperties
       (pv::PCL_VISUALIZER_COLOR,
        CUBE_R/255.0, CUBE_G/255.0, CUBE_B/255.0,
@@ -475,7 +531,10 @@ void SceneCloudView::toggleCube(const Vector3f& size) {
   }
 }
 
-void SceneCloudView::toggleExtractionMode() {
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::toggleExtractionMode ()
+{
   extraction_mode = (extraction_mode+1)%3;
   std::cout << "\nCloud exctraction mode ";
   switch (extraction_mode) {
@@ -485,7 +544,10 @@ void SceneCloudView::toggleExtractionMode() {
   }
 }
 
-void SceneCloudView::toggleNormals() {
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::toggleNormals ()
+{
   compute_normals = !compute_normals;
   std::cout << "\nCompute normals: " << (compute_normals ? "On\n" : "Off\n");
   if (compute_normals && (extraction_mode != GPU_CON6)) {
@@ -495,7 +557,10 @@ void SceneCloudView::toggleNormals() {
   }
 }
 
-void SceneCloudView::clearClouds(bool print_message) {
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::clearClouds (bool print_message)
+{
   if (!cloud_viewer) return;
   cloud_viewer->removeAllPointClouds();
   cloud_ptr->points.clear ();
@@ -503,9 +568,10 @@ void SceneCloudView::clearClouds(bool print_message) {
   if (print_message) std::cout << "Clouds/Meshes cleared\n";
 }
 
+///////////////////////////////////////////////////////////////////////////////
 boost::shared_ptr<PolygonMesh>
-SceneCloudView::convertToMesh(const DeviceArray<PointXYZ>& triangles) { 
-  
+SceneCloudView::convertToMesh (const DeviceArray<PointXYZ>& triangles)
+{
   if (triangles.empty()) return boost::shared_ptr<PolygonMesh>();
   
   PointCloud<PointXYZ> cloud;
@@ -528,17 +594,24 @@ SceneCloudView::convertToMesh(const DeviceArray<PointXYZ>& triangles) {
   return mesh_ptr;
 }
 
-void SceneCloudView::writeCloud(int format) const {
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::writeCloud (int format) const
+{
   if (!cloud_ptr->points.empty()) {
     if (valid_combined) writeCloudFile(format, combined_ptr);
     else writeCloudFile(format, cloud_ptr);
   }
 }
 
-void SceneCloudView::writeMesh(int format) const
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::writeMesh (int format) const
 { if (mesh_ptr) writePolygonMeshFile(format, *mesh_ptr); }
 
-void SceneCloudView::writePolygonMeshFile(int format, const PolygonMesh& mesh)
+///////////////////////////////////////////////////////////////////////////////
+void
+SceneCloudView::writePolygonMeshFile (int format, const PolygonMesh& mesh)
   const {
   if (format == MESH_PLY) {
     std::cout << "Saving mesh to to 'mesh.ply'..." << std::flush;
@@ -550,6 +623,8 @@ void SceneCloudView::writePolygonMeshFile(int format, const PolygonMesh& mesh)
   std::cout << "Done\n";
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
 CurrentCloudView::CurrentCloudView(bool show_cloud)
   : CloudView("Current Frame Cloud", show_cloud) {
   
@@ -562,8 +637,10 @@ CurrentCloudView::CurrentCloudView(bool show_cloud)
   }
 }
 
-void CurrentCloudView::show(const KinfuTracker& kinfu) {
-
+///////////////////////////////////////////////////////////////////////////////
+void
+CurrentCloudView::show (const KinfuTracker& kinfu)
+{
   kinfu.getLastFrameCloud(cloud_device);
 
   int c; cloud_device.download(cloud_ptr->points, c);

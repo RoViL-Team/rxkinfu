@@ -1,8 +1,12 @@
+# rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics
+#
+# Author: Dimitrios Kanoulas (dkanoulas@gmail.com)
+
 cmake_minimum_required(VERSION 2.8.3)
 project(rxkinfu)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-dev -Wall -msse -msse2 -msse3 -O3 -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -msse -msse2 -msse3 -O3 -std=c++11")
 
 
 ## Find catkin macros and libraries
@@ -18,7 +22,15 @@ find_package(catkin REQUIRED COMPONENTS)
 ## System dependencies are found with CMake's conventions
 find_package(Boost COMPONENTS thread serialization REQUIRED)
 find_package(CUDA 7.0 REQUIRED)
-find_package(PCL 1.7 QUIET REQUIRED)
+find_package(PCL 1.8 REQUIRED COMPONENTS common
+                                         console
+                                         io
+                                         filter
+                                         features
+                                         segmentation
+                                         search
+                                         surface
+                                         visualization)
 
 message(STATUS "CUDA Version: " ${CUDA_VERSION_STRINGS})
 message(STATUS "CUDA Libararies: " ${CUDA_LIBRARIES})
@@ -96,7 +108,7 @@ catkin_package(
   CATKIN_DEPENDS roscpp
                  rospy
                  roslib
-  DEPENDS system_lib
+  #DEPENDS system_lib #TBD
 )
 
 ###########
@@ -106,18 +118,21 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include include/${PROJECT_NAME}
-                    ${Eigen_INCLUDE_DIRS})
+                    ${Eigen_INCLUDE_DIRS}
+                    ${PCL_INCLUDE_DIRS})
 include_directories(include src/
-                    ${Eigen_INCLUDE_DIRS})
+                    ${Eigen_INCLUDE_DIRS}
+                    ${PCL_INCLUDE_DIRS})
 include_directories(include src/cuda
-                    ${Eigen_INCLUDE_DIRS})
+                    ${Eigen_INCLUDE_DIRS}
+                    ${PCL_INCLUDE_DIRS})
 
 include_directories(include ${catkin_INCLUDE_DIRS}
                             ${boost_INCLUDE_DIRS}
                             ${Eigen_INCLUDE_DIRS}
                             ${PCL_INCLUDE_DIRS})
 
-include_directories(${CUDA_INCLUDE_DIRS})
+include_directories(${CUDA_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -130,8 +145,10 @@ file(GLOB cuda src/cuda/*.cu src/cuda/*.h* src/cuda/*.cpp)
 include(CudaComputeTargetFlags.cmake)                  
 APPEND_TARGET_ARCH_FLAGS()
 
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}  "-Xcompiler;-fPIC;")           
+#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}  "-Xcompiler;-fPIC;")           
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}  "-D_FORCE_INLINES;-Xcompiler;-fPIC;")           
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "--ftz=true;--prec-div=false;--prec-sqrt=false") 
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" ) #added in Ubntu 16.04
 
 CUDA_COMPILE(cuda_objs ${cuda}) 
 
@@ -144,7 +161,7 @@ add_executable(rxkinfu_test src/rxkinfu.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 add_dependencies(rxkinfu_test ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against

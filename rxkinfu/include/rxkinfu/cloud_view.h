@@ -58,8 +58,10 @@ namespace rxkinfu {
     virtual ~CloudView() {}
 
     virtual void setViewerPose(const Eigen::Affine3f& pose);
-
-    virtual Eigen::Affine3f getViewerPose();
+    
+    /** \brief TBD */
+    virtual void
+    getViewerPose (Eigen::Affine3f& pose);
 
     virtual void resetViewerPose();
 

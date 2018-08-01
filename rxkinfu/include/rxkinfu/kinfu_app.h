@@ -32,7 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  *  Author: Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
- *  Author: Marsette Vona
+ *  Author: Dimitrios Kanoulas (dkanoulas@gmail.com), Marsette Vona
  */
 
 #ifndef MVKINFU_KINFU_APP_H
@@ -244,7 +244,10 @@ TOGGLE_SHOW(bubble_frusta,BubbleFrusta)
    
     int dropped_frames, max_data_queue;
     double timestamp, timestamp_was;
+    
     KinfuTracker::DepthMap depth_device;
+    //KinfuTracker::View color_device_; //davidjones: ADDED FOR COLOR
+    
     std::queue<boost::shared_ptr<unsigned short> > source_depth_data;
     std::queue<PtrStepSz<const unsigned short> > source_depth;
 

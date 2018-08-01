@@ -32,48 +32,79 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  *  Author: Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
- *  Author: Marsette Vona
- *  Author: Dimitrios Kanoulas (dkanoulas@gmail.com)
+ *  Author: Dimitrios Kanoulas (dkanoulas@gmail.com), Marsette Vona
  */
 
-#ifndef MVKINFU_KINFU_APP_ROS_H
-#define MVKINFU_KINFU_APP_ROS_H
+#ifndef RXKINFU_KINFU_APP_ROS_H
+#define RXKINFU_KINFU_APP_ROS_H
 
+#include <iostream>
+
+// CUDA headers
 #include "cuda/containers.h"
+
+// Boost headers
+#include <boost/filesystem.hpp>
+
+// RXKinFu headers
 #include <rxkinfu/kinfu_tracker.h>
 #include <rxkinfu/tsdf_volume_host.h>
 #include <rxkinfu/image_view.h>
 #include <rxkinfu/cloud_view.h>
 
-#ifdef HAVE_IMUCAM
-#include <imucam/imucam.h>
-#endif
-
 // ROS headers
 #include <ros/ros.h>
 #include <ros/node_handle.h>
+
+// TF headers
+#include <tf/transform_broadcaster.h>
 
 // SENSOR_MSGS headers
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 
+// PCL_ROS headers
 #include <pcl_ros/point_cloud.h>
 
 // PCL headers
+#include <pcl/common/time.h>
+#include <pcl/common/angles.h>
+#include <pcl/console/parse.h>
+#include <pcl/console/print.h>
+#include <pcl/exceptions.h>
 #include <pcl/io/openni2_grabber.h>
+#include <pcl/io/oni_grabber.h>
+#include <pcl/io/pcd_grabber.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/common/time.h>
+
+// IMUCAM headers
+#ifdef HAVE_IMUCAM
+#include <imucam/fmt.h>
+#endif
 
 namespace rxkinfu
 {
-  /** \brief TBD
+  /** \brief This is the ROS wrapper for the rxkinfu, applied to robotic tasks,
+    * such as locomotion, manipulation, etc
+    * 
+    * The methodology is described in the following papers:
+    * 1. "Moving Volume KinectFusion", BMVC'12, H. Roth, M. Vona
+    * 2. "Curved Surface Patches for Rough Terrain Perception", PhD Thesis'14,
+    *    D. Kanoulas
     *
     * \author Dimitrios Kanoulas
     */
   class KinfuAppRos
   {
     public:
+      /** \brief  Type definitions. **/
+      typedef pcl::PointXYZ Point;
+      typedef pcl::PointXYZRGBA PointIn;
+      typedef pcl::PointCloud<Point> PointCloudIn;
+      typedef PointCloudIn::Ptr PointCloudInPtr;
+      typedef PointCloudIn::ConstPtr PointCloudInConstPtr;
+      
       /** \brief Contructor that runs setup() with the same input params.
         *
         * \param[in] volume_size_meters the size of the volume in meters
@@ -114,20 +145,24 @@ namespace rxkinfu
         * \param[in] argv the input parameters
         * \param[in] node the ROS rxkinfu node created in the main function
         */
-      KinfuAppRos (int argc, char **argv, ros::NodeHandle node);
+      KinfuAppRos (int argc, char **argv, ros::NodeHandle& node);
       
       
       /** \brief Destructor. */
-      virtual ~KinfuAppRos() {}
-
+      virtual
+      ~KinfuAppRos () {}
+      
+      
       /** \brief Print the KinFu help options. */
       virtual void
-      printHelp();
+      printHelp ();
       
       /** \brief Print the rxKinFu help options.
         *
-        * \param[in] pfx TBD
-        * \param[in] with_inputs TBD
+        * \param[in] pfx prefix text to be visualized at each line, usually
+        *            helpful to distinguish between different help lists.
+        * \param[in] with_inputs whether there is a specification of input
+        *            devices or files
         */
       static void
       usageHelp (const char *pfx = "", bool with_inputs = true);
@@ -181,42 +216,97 @@ namespace rxkinfu
 
       /** \brief Setup the KinFu vizualization.
         *
-        * \param[in] show_current_cloud TBD
-        * \param[in] show_raycast TBD
-        * \param[in] show_depth TBD
+        * \param[in] show_current_cloud whether to show the current cloud
+        * \param[in] show_raycast whether to show the raycasted image
+        * \param[in] show_depth whether to show the depth image
         */
       virtual void
       setupViz (bool show_current_cloud, bool show_raycast, bool show_depth);
+      
+      /** \brief Setup all ROS-related params: subscribers, publishers, etc */
+      void
+      setupROS ();
 
-      virtual void setupKinfu (const Eigen::Vector3f &volume_size_meters,
-                               bool en_icp, bool truncation_scaling);
-
-      virtual pcl::Grabber* makeCapture (int argc, char **argv,
-                                         bool &live, bool &trigger);
-
-      virtual KinfuTracker* makeKinfuTracker ();
-
-      virtual TsdfVolumeHost<float, short>* makeTsdfVolumeHost();
-
-      virtual ImageView* makeImageView(bool show_raycast, bool show_depth);
-      virtual SceneCloudView* makeSceneCloudView(bool show_cloud);
-      virtual CurrentCloudView* makeCurrentCloudView(bool show_cloud);
-
-      virtual void toggleCameraMode();
-      virtual void setIndependentCameraMode();
-      virtual void setBubbleCameraMode();
-      virtual void setKinectCameraMode();
-    
-      virtual void togglePaused();
-      virtual void setPaused(bool en);
-      virtual void setSingleStep(bool en);
-
-      virtual void toggleShowCurentCloudInScene();
-      virtual void setShowCurrentCloudInScene(bool show);
-
-      virtual void toggleShowBubbleCloud();
-      virtual void setShowBubbleCloud(bool show);
-
+      /** \brief */
+      virtual void
+      setupKinfu (const Eigen::Vector3f &volume_size_meters,
+                  bool en_icp, bool truncation_scaling);
+      
+      /** \brief */
+      virtual pcl::Grabber*
+      makeCapture (int argc, char **argv, bool &live, bool &trigger);
+      
+      /** \brief */
+      virtual KinfuTracker*
+      makeKinfuTracker ();
+      
+      /** \brief */
+      virtual TsdfVolumeHost<float, short>*
+      makeTsdfVolumeHost ();
+      
+      /** \brief Generate a new windwo for shoing images, such as raycasted or
+        *        depth.
+        * 
+        * \param[in] show_raycast whether to show the raycasted image
+        * \param[in] show_depth whether to show the depth image
+        * 
+        * \return an ImageView object pointer
+        */
+      virtual ImageView*
+      makeImageView (bool show_raycast, bool show_depth);
+      
+      /** \brief */
+      virtual SceneCloudView*
+      makeSceneCloudView (bool show_cloud);
+      
+      /** \brief */
+      virtual CurrentCloudView*
+      makeCurrentCloudView (bool show_cloud);
+      
+      /** \brief */
+      virtual void
+      toggleCameraMode ();
+      
+      /** \brief */
+      virtual void
+      setIndependentCameraMode ();
+      
+      /** \brief */
+      virtual void
+      setBubbleCameraMode ();
+      
+      /** \brief */
+      virtual void
+      setKinectCameraMode ();
+      
+      /** \brief */
+      virtual void 
+      togglePaused ();
+      
+      /** \brief */
+      virtual void 
+      setPaused (bool en);
+      
+      /** \brief */
+      virtual void
+      setSingleStep (bool en);
+      
+      /** \brief */
+      virtual void
+      toggleShowCurentCloudInScene ();
+      
+      /** \brief */
+      virtual void
+      setShowCurrentCloudInScene (bool show);\
+      
+      /** \brief */
+      virtual void
+      toggleShowBubbleCloud ();
+      
+      /** \brief */
+      virtual void
+      setShowBubbleCloud (bool show);
+      
       #define TOGGLE_SHOW(foo, Foo)            \
         virtual void toggleShow##Foo();      \
         virtual void setShow##Foo(bool show);
@@ -245,15 +335,21 @@ namespace rxkinfu
       virtual void initBubble();
 
       virtual bool execKinfu(double timestamp);
-
-      virtual void execScan();
+      
+      /** \brief Execute a scanning: 1) download the TSDF volume from th
+        * device and 2) convert it to a TSDF cloud.
+        */
+      virtual void
+      execScan ();
 
       virtual void execBubbleRaycast(const Eigen::Affine3f &bubble_pose);
       
       virtual void bubbleCamBackproject(float &x, float &y, Eigen::Vector3f p,
                                         int face = 0);
-
-      virtual void execExt() {}
+      
+      /** \brief Extensions. */
+      virtual void
+      execExt() {};
 
       virtual void execViz(bool has_data, bool has_image,
                           const Eigen::Affine3f &bubble_pose);
@@ -268,12 +364,12 @@ namespace rxkinfu
                         void *cookie);
       
       /** \brief Mouse callback function. */
-      virtual void
-      mouseCB (const pcl::visualization::MouseEvent &e, void *cookie);
+      //virtual void
+      //mouseCB (const pcl::visualization::MouseEvent &e, void *cookie);
       
       /** \brief Point Picking callback function. */
-      virtual void
-      pointCB (const pcl::visualization::PointPickingEvent &e, void *cookie);
+      //virtual void
+      //pointCB (const pcl::visualization::PointPickingEvent &e, void *cookie);
       
       /** \brief Callback function for the openni-based depth images. */
       virtual void
@@ -354,9 +450,16 @@ namespace rxkinfu
       
       /** \brief Depth image subscriber. */
       ros::Subscriber depth_image_sub_;
-    
+      
+      /** \brief TF broadcaster. */
+      tf::TransformBroadcaster tf_br_;
+      
+      /** \brief TF for the KinectFusion camera. */
+      tf::Transform kinfu_cam_tf_;
+      
       boost::shared_ptr<pcl::Grabber> capture;
       
+      /** \brief KinectFusion tracker. */
       boost::shared_ptr<KinfuTracker> kinfu;
       
       boost::shared_ptr<SceneCloudView> scene_cloud_view;
@@ -364,6 +467,8 @@ namespace rxkinfu
       boost::shared_ptr<CurrentCloudView> current_cloud_view;
       
       boost::mutex quit_mutex;
+      
+      /** \brief Flag to notify that the whole loop should exit. */
       bool quit_now;
       
       bool scan, scan_mesh, scan_volume;
@@ -380,6 +485,7 @@ namespace rxkinfu
       int dropped_frames, max_data_queue;
       double timestamp, timestamp_was;
       KinfuTracker::DepthMap depth_device;
+      //KinfuTracker::View color_device_; //davidjones: ADDED FOR COLOR
       
       /** \brief The input depth data. */
       std::queue<boost::shared_ptr<unsigned short> > source_depth_data;
@@ -422,11 +528,10 @@ namespace rxkinfu
       pcl::PointCloud<pcl::PointXYZ>::Ptr bubble_rc_cloud_ptr[6];
       
       /** \brief A pointer to the original raycasted point cloud. */
-      pcl::PointCloud<pcl::PointXYZ>::Ptr original_rc_pc_ptr;
+      PointCloudInPtr original_rc_pc_ptr;
       
       /** \brief A pointer to the original point cloud. */
       pcl::PointCloud<pcl::PointXYZ>::Ptr original_pc_ptr;
-
       
       bool show_camera;
       float cam_near, cam_far;
@@ -450,8 +555,8 @@ namespace rxkinfu
       #endif
 
     private:
-      KinfuAppRos(const KinfuAppRos& other); // Disable
-      KinfuAppRos& operator=(const KinfuAppRos&); // Disable
+      KinfuAppRos (const KinfuAppRos& other); // Disable
+      KinfuAppRos& operator= (const KinfuAppRos&); // Disable
   };
 }
 

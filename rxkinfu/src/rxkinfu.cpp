@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
   } catch (const std::bad_alloc &e) {
     std::cerr << "Bad alloc: " << e.what() << std::endl;
   } catch (const std::exception &e) {
+    std::cerr << "Error no. 2" << std::endl;
     std::cerr << "Exception: " << e.what() << std::endl;
   }
   

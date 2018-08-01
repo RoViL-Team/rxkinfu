@@ -52,6 +52,7 @@ namespace rxkinfu
 
       PtrStep<float> vmap;
       PtrStep<float> nmap;
+      PtrStepSz<uchar3> colormap;//davidjoens: ADDED FOR COLOR
 
       LightSource light;
 
@@ -69,6 +70,7 @@ namespace rxkinfu
         float3 v, n;
         v.x = vmap.ptr (y)[x];
         n.x = nmap.ptr (y)[x];
+        //uchar3 raw_color = colormap.ptr(y)[x];//davidjones: ADDED FOR COLOR
 
         uchar3 color = make_uchar3 (0, 0, 0);
 
@@ -88,10 +90,22 @@ namespace rxkinfu
 
             weight *= fabs (dot (vec, n));
           }
-
+          
+          //davidjones: COMMENTED OUT FOR COLOR
           int br = (int)(205 * weight) + 50;
           br = max (0, min (255, br));
           color = make_uchar3 (br, br, br);
+          
+          //davidjones: ADDED FOR COLOR
+          //{
+          //  int r = (int)(raw_color.x * weight )+ 20;
+          //  r = max (0, min (255, r));
+          //  int g = (int)(raw_color.y * weight)+ 20;
+          //  g = max (0, min (255, g));
+          //  int b = (int)(raw_color.z * weight)+ 20;
+          //  b = max (0, min (255, b));
+          //  color = make_uchar3 (r, g, b);
+          //}
         }
         dst.ptr (y)[x] = color;
       }
@@ -105,6 +119,7 @@ namespace rxkinfu
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 void
 rxkinfu::device::generateImage (const MapArr& vmap, const MapArr& nmap, const LightSource& light, 
                                 PtrStepSz<uchar3> dst)
@@ -121,7 +136,30 @@ rxkinfu::device::generateImage (const MapArr& vmap, const MapArr& nmap, const Li
   generateImageKernel<<<grid, block>>>(ig);
   cudaSafeCall (cudaGetLastError ());
   cudaSafeCall (cudaDeviceSynchronize ());
-} 
+}
+
+
+//davidjones: MODIFIED FOR COLOR
+///////////////////////////////////////////////////////////////////////////////
+//void
+//rxkinfu::device::generateImage (const MapArr& vmap, const MapArr& nmap,
+//                                PtrStepSz<uchar3> colormap, const LightSource& light,
+//                                PtrStepSz<uchar3> dst)
+//{
+//  ImageGenerator ig;
+//  ig.vmap = vmap;
+//  ig.nmap = nmap;
+//  ig.light = light;
+//  ig.dst = dst;
+//  ig.colormap = colormap;
+//  
+//  dim3 block (ImageGenerator::CTA_SIZE_X, ImageGenerator::CTA_SIZE_Y);
+//  dim3 grid (divUp (dst.cols, block.x), divUp (dst.rows, block.y));
+//  
+//  generateImageKernel <<< grid, block >>> (ig);
+//  cudaSafeCall (cudaGetLastError ());
+//  cudaSafeCall (cudaDeviceSynchronize ());
+//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

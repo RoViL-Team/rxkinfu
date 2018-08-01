@@ -39,10 +39,12 @@
 
 #include <fstream>
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> bool
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::load (const std::string &filename, bool binary)
 {
-  pcl::console::print_info ("Loading TSDF volume from "); pcl::console::print_value ("%s ... ", filename.c_str());
+  pcl::console::print_info ("Loading TSDF volume from ");
+  pcl::console::print_value ("%s ... ", filename.c_str());
   std::cout << std::flush;
 
   std::ifstream file (filename.c_str());
@@ -97,6 +99,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::load (const std::string &filename, boo
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> bool
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::save (const std::string &filename, bool binary) const
 {
@@ -151,6 +154,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::save (const std::string &filename, boo
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> void
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::convertToTsdfCloud (pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud) const
 {
@@ -187,6 +191,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::convertToTsdfCloud (pcl::PointCloud<pc
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> template <typename PointT> void
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::getVoxelCoord (const PointT &point, Eigen::Vector3i &coord) const
 {
@@ -201,6 +206,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::getVoxelCoord (const PointT &point, Ei
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 /** \brief Retunrs the 3D voxel coordinate and point offset wrt. to the voxel center (in mm) */
 template <typename VoxelT, typename WeightT> template <typename PointT> void
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::getVoxelCoordAndOffset (const PointT &point,
@@ -220,6 +226,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::getVoxelCoordAndOffset (const PointT &
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> bool
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::extractNeighborhood (const Eigen::Vector3i &voxel_coord, int neighborhood_size,
                                                                VoxelTVec &neighborhood) const
@@ -273,9 +280,12 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::extractNeighborhood (const Eigen::Vect
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> bool
-rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::addNeighborhood (const Eigen::Vector3i &voxel_coord, int neighborhood_size,
-                                                           const VoxelTVec &neighborhood, WeightT voxel_weight)
+rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::addNeighborhood (const Eigen::Vector3i &voxel_coord,
+                                                           int neighborhood_size,
+                                                           const VoxelTVec &neighborhood,
+                                                           WeightT voxel_weight)
 {
   // point_index is at the center of a cube of scale_ x scale_ x scale_ voxels
   int shift = (neighborhood_size - 1) / 2;
@@ -324,6 +334,7 @@ rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::addNeighborhood (const Eigen::Vector3i
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
 template <typename VoxelT, typename WeightT> void
 rxkinfu::TsdfVolumeHost<VoxelT, WeightT>::averageValues ()
 {

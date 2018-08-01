@@ -1,10 +1,8 @@
-# Kinect Fusion for Robotics, Perception, Etc. (RXKinFu)
+# rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics
 
-<img src="rxkinfu.png" width="30%"/> <img src="remap_vols.png" width="20%"/>
+This is a library and application for Moving Volume Kinect Fusion.  It is based on KinFu from [PCL](http://www.pointclouds.org), forked from PCL git b1edb0d9 (11/21/13).  RXKinFu does not depend on the `pcl/gpu` module, and PCL KinFu and RXKinFu can coexist as they are in separate namespaces.
 
-This is a library and application for [Moving Volume Kinect Fusion](WWW_REL_HOME/mvkinfu/index.html).  It is based on KinFu from [PCL](http://www.pointclouds.org), forked from PCL git b1edb0d9 (11/21/13).  RXKinFu does not depend on the `pcl/gpu` module, and PCL KinFu and RXKinFu can coexist as they are in separate namespaces.
-
-RXKinfu can optionally be compiled with [imucam](WWW_REL_HOME/imucam/index.html) to support grabbing (or reading saved) depth+IMU data.
+RXKinfu can optionally be compiled with [imucam](https://www2.ccs.neu.edu/research/gpc/imucam/index.html) to support grabbing (or reading saved) depth+IMU data.
 
 The original fixed-volume mode is used unless `KinfuTracker::setMovingVolumePolicy()` is called with something other than the default `KinfuTracker::FIX_VOLUME`.  If you are using the `rxkinfu` driver then this can be done by supplying one of the `-mvfc`, `-mvfd`, or `-mvff` command line options.  The first attempts to hold the camera pose fixed in the volume by transforming the volume when the camera has moved beyond a threshold; the latter two attempt to hold the camera location fixed in the volume but drive the volume orientation from specified down and forward vectors.  Those vectors can be set from the sensed gravity direction (`-downgrav`), if IMU data is available, and respectively either the recent camera velocity direction (`-headvel`) or the current camera direction (`-headcam`).
 
@@ -20,7 +18,7 @@ New code Copyright (c) 2017, Marsette Vona, Dimitrios Kanoulas as noted.  All co
 *   added moving volume features
 *   added FIFO queue for input frames, default max size 10 frames, set or disable with `-mdq` option (this is useful to avoid hiccups when moving volume transforms occur, though there is a latency penalty if the FIFO starts to fill)
 *   build as library in addition to executable app
-*   added optional input from [imucam](WWW_REL_HOME/imucam/index.html), see `-imucam_grabber` and `-imucam_reader` command line options
+*   added optional input from imucam, see `-imucam_grabber` and `-imucam_reader` command line options
 *   reworked timing display on console in `kinfu_app.cpp`
 *   split out reusable code from `kinfu_app.cpp`: `cloud_view.[h,hpp,cpp]`, `image_view.[h,cpp]` `kinfu_app.[h,cpp]`, renamed driver `rxkinfu.cpp`
 *   rename namespace `pcl::gpu` to `rxkinfu`, `pcl::device` to `rxkinfu::device`
@@ -130,15 +128,13 @@ with `OrganizedFastMesh`, possibly with a decimated triangle size `ts`.  Toggle
 by hitting Y.
 
 ## Tested Platforms
-*   Ubuntu 12.04 64-bit, gcc 4.6.3, CUDA 5.5
-*   OS X 10.9, clang 5.0, CUDA 5.5
-*   Windows is not supported, a minimal port should be possible
+*   Ubuntu 16.04 64-bit, gcc 5.4.0, CUDA 7.5
 
 ## Dependencies
 *   PCL trunk modules `common, io, visualization, surface` and their dependencies (RXKinFu does not depend on the PCL `gpu` module at all)
 
 ## Building
-Optional but recommended: first download and build [imucam](WWW_REL_HOME/imucam/index.html) in a sibling directory to the `rxkinfu` build directory.  The imucam directory must be named `imucam`.
+Optional but recommended: first download and build imucam in a sibling directory to the `rxkinfu` build directory.  The imucam directory must be named `imucam`.
 
 Run `make` to build everything.  Option `VERBOSE=1` shows the commands being run.
 

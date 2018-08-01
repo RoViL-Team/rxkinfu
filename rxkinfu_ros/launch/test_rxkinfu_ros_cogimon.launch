@@ -1,0 +1,19 @@
+<!-- Test  (test_rxkinfu_ros.cpp).                                      -->
+<!-- Author: Dimitrios Kanoulas (dkanoulas@gmail.com)                   -->
+<!-- Run: > roslaunch rxkinfu_ros test_rxkinfu_ros_cogimon.launch -->
+
+<launch>
+  <node pkg="rxkinfu_ros"
+        name="rqxkinfu_ros_test"
+        type="rxkinfu_ros_test"
+        respawn="false"
+        output="screen"
+        args="-b -bf -bc 0 -br 400,0,0,0,0,0 -bo 0,0,0 -drawcam -drawdown
+              -mvfd -mvcnn -mvcv -mvdthresh 0.50 -bubcam -bubcamloc
+              -campos 1.5,1.5,1.5 -camaa 3.14,0.003,0.380,0.92 -vs 3"
+  />
+  
+  <!-- Load params from the YAML file to the parameter server -->
+  <rosparam file="$(find rxkinfu_ros)/config/rxkinfu_ros.yaml" command="load" />
+  
+</launch>

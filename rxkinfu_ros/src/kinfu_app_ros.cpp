@@ -32,8 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  *  Author: Anatoly Baskeheev, Itseez Ltd, (myname.mysurname@mycompany.com)
- *  Author: Marsette Vona
- *  Author: Dimitrios Kanoulas (dkanoulas@gmail.com)
+ *  Author: Dimitrios Kanoulas (dkanoulas@gmail.com), Marsette Vona
  */
 
 #include "kinfu_app_ros.h"
@@ -59,22 +58,6 @@
 #define DEF_BUB_CAM_LOC 7,-3,-3
 #define DEF_CAM_NEAR 0.5f
 #define DEF_CAM_FAR 5.0f
-
-#include <iostream>
-
-#include <boost/filesystem.hpp>
-
-#ifdef HAVE_IMUCAM
-#include <imucam/fmt.h>
-#endif
-
-#include <pcl/console/parse.h>
-#include <pcl/console/print.h>
-#include <pcl/io/openni2_grabber.h>
-#include <pcl/io/oni_grabber.h>
-#include <pcl/io/pcd_grabber.h>
-#include <pcl/exceptions.h>
-#include <pcl/common/angles.h>
 
 using namespace Eigen;
 using namespace pcl;
@@ -120,14 +103,18 @@ KinfuAppRos::KinfuAppRos (int argc, char **argv,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-KinfuAppRos::KinfuAppRos (int argc, char **argv, ros::NodeHandle node)
+KinfuAppRos::KinfuAppRos (int argc, char **argv, ros::NodeHandle& node)
 {
+  std::cout << "KinfuAppRos::KinfuAppRos: " << argc << std::endl;
   node_ = node; // set the ROS node
+  setupROS (); // setup ROS
   setup (argc, argv);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
-void KinfuAppRos::printHelp ()
+void
+KinfuAppRos::printHelp ()
 {
   std::cout
     << std::endl
@@ -141,7 +128,8 @@ void KinfuAppRos::printHelp ()
     << "    b    : toggle volume bounds\n"
     << "    c    : clear clouds and meshes from viewer\n"
     << "  "
-    << SceneCloudView::PCD_BIN << "," << SceneCloudView::PCD_ASCII << ","
+    << SceneCloudView::PCD_BIN << ","
+    << SceneCloudView::PCD_ASCII << ","
     << SceneCloudView::PLY
     << "  : save last cloud as binary PCD/ascii PCD/PLY\n"
     << "   " << SceneCloudView::MESH_PLY << "," << SceneCloudView::MESH_VTK
@@ -159,7 +147,8 @@ void KinfuAppRos::printHelp ()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void KinfuAppRos::usageHelp (const char *pfx, bool with_inputs)
+void
+KinfuAppRos::usageHelp (const char *pfx, bool with_inputs)
 {
   std::cout
     << pfx << "  -h : print this message\n"
@@ -181,7 +170,7 @@ void KinfuAppRos::usageHelp (const char *pfx, bool with_inputs)
     << pfx << "  -nrv : no raycast view\n"
     << pfx << "  -sc [ts] : show current cloud (as mesh with tri size ts)\n"
     << pfx << "  -drawcam [near [far]]: show camera frustum\n";
-
+  
   std::cout
     << pfx << "  -mvcnn : moving volume check nearest neighbor\n"
     << pfx << "  -mvcv : moving volume check valid\n"
@@ -211,32 +200,19 @@ void KinfuAppRos::usageHelp (const char *pfx, bool with_inputs)
     << Vector3f(DEF_BUB_CAM_LOC).transpose() << ")\n"
     << pfx << "  -bubcam : start with bubble-fixed camera\n"
     << pfx << "  -print_status : print the kinfu status\n";
-
+  
   if (with_inputs)
   {
     std::cout
       << pfx << "  -dev <openni device num> (default 0)\n"
       << pfx << "  -oni <file>\n"
       << pfx << "  -pcd <file or dir> [-pcd_fps N (default 15.0)]\n";
-#ifdef HAVE_IMUCAM
-    std::cout << pfx << "  -imucam_grabber [\"arg1 arg2 ...\"]\n";
-    std::cout << pfx << "  -imucam_grabber args:\n";
-    std::string pfx2_str = FMT(pfx << "    ");
-    const char *pfx2 = pfx2_str.c_str();
-    imucam::Grabber::usageShort(pfx2, pfx2);
-    imucam::Grabber::usageHelp(pfx2);
-    std::cout << pfx << "  -imucam_reader [\"arg1 arg2 ...\"]\n";
-    std::cout << pfx << "  -imucam_reader args:\n";
-    imucam::Reader::usageShort(pfx2, pfx2);
-    std::cout << pfx2 << "[-untriggered]\n";
-    imucam::Reader::usageHelp(pfx2);
-    std::cout << pfx2 << "-untriggered : free-run mode, may drop frames\n";
-#endif
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-int KinfuAppRos::printStatus ()
+int
+KinfuAppRos::printStatus ()
 {
   int queued_frames, dropped_frames = 0;
   {
@@ -280,13 +256,14 @@ int KinfuAppRos::printStatus ()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void KinfuAppRos::setup (const Vector3f &volsz, bool en_icp,
-                         bool en_viz, bool cc, bool rv, bool dv,
-                         bool ts, bool ev, bool live, bool trig,
-                         boost::shared_ptr<pcl::Grabber> cap)
+void
+KinfuAppRos::setup (const Vector3f &volsz, bool en_icp,
+                    bool en_viz, bool cc, bool rv, bool dv,
+                    bool ts, bool ev, bool live, bool trig,
+                    boost::shared_ptr<pcl::Grabber> cap)
 {
-  if (!cap) throw std::runtime_error("no capture object");
-    capture = cap;
+  //if (!cap) throw std::runtime_error("no capture object");
+  //  capture = cap;
 
   quit(false);
 
@@ -363,6 +340,10 @@ void
 KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
                     boost::shared_ptr<pcl::Grabber> cap)
 {
+  // DEBUG
+  std::cout << "KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,"
+            << " boost::shared_ptr<pcl::Grabber> cap) START" << std::endl;
+
   setCudaDevice(argc, argv);
 
   bool icp = !pc::find_switch(argc, argv, "-noicp");
@@ -388,10 +369,16 @@ KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
                       vs(0), vs(1), vs(2));
   
   setup(vs, icp, viz, cc, rv, dv, ts, ev, live, trig, cap);
-
+  
   setupMovingVolume(argc, argv);
   
-  setInitialCameraPose(argc, argv);
+  // DEBUG
+  std::cout << "KinfuAppRos::setup 1" << std::endl;
+
+  setInitialCameraPose (argc, argv);
+
+  // DEBUG
+  std::cout << "KinfuAppRos::setup 2" << std::endl;
 
   pc::parse_argument(argc, argv, "-mdq", max_data_queue);
   pc::print_highlight("max data queue size %d frames\n", max_data_queue);
@@ -440,7 +427,7 @@ KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
     if (nf.size() >= 2) cam_far = nf[1];
     pc::print_highlight("cam near %6.3f, far %6.3f\n", cam_near, cam_far);
   }
-
+  
   std::vector<int> tsz;
   if ((pc::parse_x_arguments(argc, argv, "-sc", tsz) > 0) ||
       pc::find_switch(argc, argv, "-sc"))
@@ -450,7 +437,7 @@ KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
                                 (tsz[0] < 0) ? 0 : tsz[0]);
     setShowCurrentCloudInScene(true);
   }
-
+  
   tsz.clear();
   if ((pc::parse_x_arguments(argc, argv, "-bc", tsz) > 0) ||
       pc::find_switch(argc, argv, "-bc"))
@@ -460,11 +447,11 @@ KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
                                  (tsz[0] < 0) ? 0 : tsz[0]);
     setShowBubbleCloud(true);
   }
-
+  
   setShowBubble(pc::find_switch(argc, argv, "-b"));
-
+  
   setShowBubbleFrusta(pc::find_switch(argc, argv, "-bf"));
-
+  
   std::vector<float> barg;
   float bsz[] = {DEF_BUBBLE_SZ, DEF_BUBBLE_SZ, DEF_BUBBLE_SZ,
                  DEF_BUBBLE_SZ, DEF_BUBBLE_SZ, DEF_BUBBLE_SZ};
@@ -502,6 +489,13 @@ KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,
   setBubbleOffset(bofs);
   
   initBubble(); //again now that some other things are set up
+  
+  // Print status option
+  print_status = pc::find_switch(argc, argv, "-print_status");
+  
+  //DEBUG
+  std::cout << "KinfuAppRos::setup (int argc, char **argv, bool live, bool trig,"
+            << " boost::shared_ptr<pcl::Grabber> cap) END" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -517,12 +511,15 @@ KinfuAppRos::setup (int argc, char **argv)
                       (trig) ? "triggered" : "untriggered");
 
   setup(argc, argv, live, trig, cap);
+  
+  // DEBUG
+  std::cout << "KinfuAppRos::setup (int argc, char **argv) END" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 KinfuAppRos::setupKinfu (const Vector3f &volsz, bool icp, bool ts)
-{
+{  
   kinfu->volume().setSize(volsz);
   
   Matrix3f R = Matrix3f::Identity();
@@ -545,42 +542,47 @@ KinfuAppRos::setupKinfu (const Vector3f &volsz, bool icp, bool ts)
   if (!icp) kinfu->disableIcp();
   
   if (ts) kinfu->volume().setTsdfTruncDist(volsz(0)*TSDF_TRUNC_RATIO);
+  
+  // DEBUG
+  std::cout << "KinfuAppRos::setupKinfu END" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void
 KinfuAppRos::setupMovingVolume (int argc, char **argv)
 {
+  std::cout << "DEBUG: KinfuAppRos::setupMovingVolume START" << std::endl;
+  
   if (pc::find_switch(argc, argv, "-mvcnn"))
   {
     pc::print_highlight("moving volume check nearest neighbor mode\n");
     kinfu->setMovingVolumeCheckNN(true);
   }
-
+  
   if (pc::find_switch(argc, argv, "-mvcv"))
   {
     pc::print_highlight("moving volume check valid mode\n");
     kinfu->setMovingVolumeCheckValid(true);
   }
-
+  
   if (pc::find_switch(argc, argv, "-mvfc"))
   {
     pc::print_highlight("moving volume fix camera mode\n");
     kinfu->setMovingVolumePolicy(KinfuTracker::FIX_CAMERA_IN_VOLUME);
   }
-
+  
   if (pc::find_switch(argc, argv, "-mvfd"))
   {
     pc::print_highlight("moving volume fix down then forward\n");
     kinfu->setMovingVolumePolicy(KinfuTracker::FIX_DOWN_THEN_FWD_IN_VOLUME);
   }
-
+  
   if (pc::find_switch(argc, argv, "-mvff"))
   {
     pc::print_highlight("moving volume fix forward then down\n");
     kinfu->setMovingVolumePolicy(KinfuTracker::FIX_FWD_THEN_DOWN_IN_VOLUME);
   }
-
+  
   if (pc::find_switch(argc, argv, "-downgrav"))
   {
     pc::print_highlight("moving volume estimating down from gravity\n");
@@ -605,7 +607,7 @@ KinfuAppRos::setupMovingVolume (int argc, char **argv)
     pc::print_highlight("moving volume distance threshold %fm\n", thresh);
     kinfu->setMovingVolumeDistanceThresh(thresh);
   }
-
+  
   if (pc::parse_argument(argc, argv, "-mvathresh", thresh) > 0)
   {
     pc::print_highlight("moving volume angle threshold %frad\n", thresh);
@@ -618,7 +620,7 @@ KinfuAppRos::setupMovingVolume (int argc, char **argv)
                         thresh);
     setMovingVolumeVelocityAvgThresh(thresh);
   }
-
+  
   float weight;
   if (pc::parse_argument(argc, argv, "-vweight", weight) > 0)
   {
@@ -626,36 +628,77 @@ KinfuAppRos::setupMovingVolume (int argc, char **argv)
                         weight);
     setMovingVolumeVelocityAvgWeight(weight);
   }
-
+  
   setShowGravity(pc::find_switch(argc, argv, "-drawgrav"));
   setShowDown(pc::find_switch(argc, argv, "-drawdown"));
   setShowHeading(pc::find_switch(argc, argv, "-drawhead"));
   setShowVelocity(pc::find_switch(argc, argv, "-drawvel"));
+  
+  // DEBUG
+  std::cout << "KinfuAppRos::setupMovingVolume END" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 void
 KinfuAppRos::setupViz (bool cc, bool rv, bool dv)
 {
+  std::cout << "KinfuAppRos::setupViz START" << std::endl;
+  
+  //
   scene_cloud_view.reset (makeSceneCloudView (viz));
   scene_cloud_view->registerKeyboardCallback (&KinfuAppRos::keyCB, *this);
-  scene_cloud_view->registerMouseCallback (&KinfuAppRos::mouseCB, *this);
-  scene_cloud_view->registerPointPickingCallback (&KinfuAppRos::pointCB, *this);
-
+  //scene_cloud_view->registerMouseCallback (&KinfuAppRos::mouseCB, *this);
+  //scene_cloud_view->registerPointPickingCallback (&KinfuAppRos::pointCB, *this);
+    
   image_view.reset(makeImageView(viz && rv, viz && dv));
   image_view->registerKeyboardCallback(&KinfuAppRos::keyCB, *this);
-
+  
+  // if current cloud should be shown
   if (cc)
   {
-    current_cloud_view.reset(makeCurrentCloudView(viz));
-    current_cloud_view->setViewerPose(kinfu->getCameraPose());
+    current_cloud_view.reset (makeCurrentCloudView(viz));
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    current_cloud_view->setViewerPose (cam_pose);
     current_cloud_view->registerKeyboardCallback(&KinfuAppRos::keyCB, *this);
-    current_cloud_view->registerMouseCallback (&KinfuAppRos::mouseCB, *this);
-    current_cloud_view->registerPointPickingCallback (&KinfuAppRos::pointCB, *this);
+    //current_cloud_view->registerMouseCallback (&KinfuAppRos::mouseCB, *this);
+    //current_cloud_view->registerPointPickingCallback (&KinfuAppRos::pointCB, *this);
   }
-  
+    
+  // TBD: not working WTF
   if (viz)
     scene_cloud_view->toggleCube(kinfu->volume().getSize());
+  
+  // DEBUG
+  std::cout << "KinfuAppRos::setupViz END" << std::endl;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void
+KinfuAppRos::setupROS ()
+{
+  /** Initialize ROS **/  
+  // Advertise the Original Point Cloud
+  original_pc_pub_ =
+    node_.advertise<sensor_msgs::PointCloud2> ("original_point_cloud", 1);
+  
+  // Advertise the Bubble Point Cloud  
+  bubble_pc_pub_ =
+    node_.advertise<sensor_msgs::PointCloud2> ("bubble_point_cloud", 1);
+  
+  // Advertise the Input Depth Image
+  depth_image_pub_ =
+    node_.advertise<sensor_msgs::Image> ("input_depth_image", 1);
+  
+  // Subscribe to the depth image
+  depth_image_sub_ = node_.subscribe ("/camera/depth/image_raw", 1,
+                                      &KinfuAppRos::depthImageCB, this);
+  
+  // Point cloud creation
+  original_rc_pc_ptr = PointCloudInPtr (new PointCloudIn);
+  
+  // DEBUG
+  std::cout << "KinfuAppRos::setupROS END" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -706,11 +749,16 @@ KinfuAppRos::toggleCameraMode ()
 void
 KinfuAppRos::setIndependentCameraMode ()
 {
+  std::cout << "KinfuAppRos::setIndependentCameraMode" << std::endl;
   if (!independent_camera || bubble_camera)
   {
     reset_camera_pending = true;
     if (kinfu && scene_cloud_view)
-      scene_cloud_view->setViewerPose(kinfu->getCameraPose());
+    {
+      Eigen::Affine3f cam_pose;
+      kinfu->getCameraPose (cam_pose);
+      scene_cloud_view->setViewerPose (cam_pose);
+    }
     independent_camera = true;
     bubble_camera = false;
     //std::cout << "Independent camera mode\n";
@@ -832,8 +880,10 @@ KinfuAppRos::toggleShowBubbleCloud ()
 void
 KinfuAppRos::setShowBubbleCloud (bool show)
 {
+  std::cout << "KinfuAppRos::setShowBubbleCloud" << std::endl;
   if (show_bubble_cloud != show)
   {
+    std::cout << "KinfuAppRos::setShowBubbleCloud 2" << std::endl;
     show_bubble_cloud = show;
     initBubble();
     //std::cout << "Bubble cloud " << (show ? "shown" : "hidden") << std::endl;
@@ -845,7 +895,7 @@ KinfuAppRos::setShowBubbleCloud (bool show)
   void KinfuAppRos::setShow##Foo(bool show) {                           \
     if (show_##foo != show) {                                           \
       show_##foo = show;                                                \
-      /* std::cout << #Foo << " " << (show ? "shown\n" : "hidden\n") */ \
+      /* std::cout << #Foo << " " << (show ? "shown\n" : "hidden\n");*/ \
     }                                                                   \
   }
 
@@ -932,7 +982,9 @@ KinfuAppRos::setBubbleOffset (const Vector3f &o)
 ///////////////////////////////////////////////////////////////////////////////
 void
 KinfuAppRos::initBubble ()
-{ 
+{
+  std::cout << "KinfuAppRos::initBubble" << std::endl;
+  
   const std::string bflrkt = "bflrkt";
   for (int i = 0; i < 6; i++)
   {
@@ -1023,7 +1075,9 @@ KinfuAppRos::initBubble ()
 
   if (kinfu)
   {
-    Quaternionf q (kinfu->getCameraPose(0).rotation());
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose, 0);
+    Quaternionf q (cam_pose.rotation());
     bubble_rot = q.inverse();
   }
 }
@@ -1039,13 +1093,14 @@ KinfuAppRos::execKinfu (double timestamp)
 void
 KinfuAppRos::execScan ()
 {
-
   if (scan || scan_mesh)
   {
     setShowCurrentCloudInScene(false);
+    
+    // TBD: why this is not working anymore?
     setShowBubbleCloud(false);
   }
-
+  
   if (scan)
   {
     scan = false;
@@ -1068,7 +1123,6 @@ KinfuAppRos::execScan ()
       std::cout << "Converting to TSDF cloud ..." << std::flush;
       tsdf_volume_host->convertToTsdfCloud(tsdf_cloud);
       std::cout << "Done, " << tsdf_cloud->size() << " points\n";
-      
     }
     else
     {
@@ -1091,6 +1145,7 @@ KinfuAppRos::execBubbleRaycast (const Eigen::Affine3f &bubble_pose)
   {
     if (bubble_resolution[i] > 0)
     {
+      //std::cout << "DEBUG: KinfuAppRos::execBubbleRaycast: " << i << std::endl;
       Affine3f frustum_pose = bubble_pose;
       frustum_pose.rotate(bubble_aa[i]);
       
@@ -1124,11 +1179,17 @@ KinfuAppRos::bubbleCamBackproject (float &x, float &y, Eigen::Vector3f p,
 void KinfuAppRos::execViz (bool has_data, bool has_image,
                            const Affine3f &bubble_pose)
 {
+  //std::cout << "DEBUG: KinfuAppRos::execViz" << std::endl;
+  
   // Set viewer camera pose
   if (bubble_camera)
     scene_cloud_view->setViewerPose(bubble_pose * bubble_camera_viewpoint);
   else if (!independent_camera)
-    scene_cloud_view->setViewerPose(kinfu->getCameraPose());
+  {
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    scene_cloud_view->setViewerPose(cam_pose);
+  }
   
   // Show incoming depth image
   if (has_data) image_view->showDepth(viz_depth);
@@ -1137,8 +1198,10 @@ void KinfuAppRos::execViz (bool has_data, bool has_image,
   // Show raycast image
   if (has_image)
   {
-    Affine3f pose = scene_cloud_view->getViewerPose();
+    Affine3f pose;
+    scene_cloud_view->getViewerPose (pose);
     image_view->show(*kinfu, (independent_camera) ? &pose : 0);
+    //image_view->show(*kinfu, color_device_, (independent_camera) ? &pose : 0); //davidjones: ADDED FOR COLOR
   }
 
   // Show current cloud
@@ -1160,9 +1223,13 @@ void KinfuAppRos::execViz (bool has_data, bool has_image,
   
   // Show depth camera frustum
   if (show_camera && independent_camera)
-    scene_cloud_view->showCamera(kinfu->getCameraPose(), "depth_cam",
+  {
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    scene_cloud_view->showCamera(cam_pose, "depth_cam",
                                  cam_near, cam_far,
                                  0.1f); //axes lengths
+  }
   else
     scene_cloud_view->removeCamera("depth_cam");
 
@@ -1173,6 +1240,8 @@ void KinfuAppRos::execViz (bool has_data, bool has_image,
     // per its surface (planes)
     for (int i = 0; i < 6; i++)
     {
+      //std::cout << "DEBUG: bubble_cloud_name[i]: " << bubble_cloud_name[i] << std::endl;
+      //std::cout << "DEBUG: bubble_rc_cloud_ptr->points.size(): " << bubble_rc_cloud_ptr[i]->points.size() << std::endl;
       if (bubble_resolution[i] > 0)
         scene_cloud_view->showCloud(bubble_rc_cloud_ptr[i], bubble_cloud_name[i],
                                     bubble_cloud_triangle_size);
@@ -1268,7 +1337,7 @@ KinfuAppRos::spinViewers (int iterations)
 void
 KinfuAppRos::copyDepth (const boost::shared_ptr<pcl::io::openni2::DepthImage>&
                         data)
-{
+{  
   int w = data->getWidth(), h = data->getHeight();
 
   PtrStepSz<const unsigned short> depth;
@@ -1314,48 +1383,52 @@ KinfuAppRos::depthCB(const boost::shared_ptr<pcl::io::openni2::DepthImage>&
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void
-KinfuAppRos::pointCloudCB(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ> >&
-                          data)
-{
-  FPS_CALC ("pointCloudCB callback");
-  
-  if (quit()) return;
-  
-  if (!live_grabber) data_mutex.lock();
-  else if (!data_mutex.try_lock()) return;
-
-  //TBD
-  
-  data_mutex.unlock();
-  data_ready_cond.notify_one();
-}
+//void
+//KinfuAppRos::pointCloudCB(const boost::shared_ptr<const pcl::PointCloud<pcl::PointXYZ> >&
+//                          data)
+//{
+//  FPS_CALC ("pointCloudCB callback");
+//  
+//  if (quit()) return;
+//  
+//  if (!live_grabber) data_mutex.lock();
+//  else if (!data_mutex.try_lock()) return;
+//
+//  //TBD
+//  
+//  data_mutex.unlock();
+//  data_ready_cond.notify_one();
+//}
 
 ////////////////////////////////////////////////////////////////////////////////
 void
 KinfuAppRos::depthImageCB (const sensor_msgs::ImageConstPtr& msg)
 {
-  FPS_CALC ("depthImageCB callback");
-  //depth_image_pub_.publish (msg); //test the CB depth image
-
-  int w = msg->width, h = msg->height;
+  //FPS_CALC ("depthImageCB callback");
   
+  if (quit()) return;
+  
+  if (!live_grabber) data_mutex.lock();
+  else if (!data_mutex.try_lock()) return;
+  
+  //depth_image_pub_.publish (msg); //test the CB depth image
+  
+  int w = msg->width, h = msg->height;
+
   PtrStepSz<const unsigned short> depth;
+  boost::shared_ptr<unsigned short> depth_data;
+  
   depth.cols = w;
   depth.rows = h;
   depth.step = w*depth.elemSize();
-
-  boost::shared_ptr<unsigned short> depth_data;
+  
   depth_data.reset(new unsigned short[w*h]);  
   
-  //unsigned int dt = msg->data[0];
-  //unsigned short dt_new = (unsigned short) dt;
-  //std::cout << "data: " << dt_new << std::endl;
-  for (int i=0; i<w*h; i++)    
-  {
-    (depth_data.get())[i] = static_cast<unsigned short>(msg->data[i]);
-  }
- 
+  ///////////////////////////////////////////////////////////////////////////
+  //Replace: data->fillDepthImageRaw(w, h, depth_data.get());
+  memcpy (depth_data.get(), &msg->data[0], msg->data.size());
+  ///////////////////////////////////////////////////////////////////////////
+  
   depth.data = depth_data.get();
   
   if (source_depth.size() == max_data_queue)
@@ -1364,40 +1437,46 @@ KinfuAppRos::depthImageCB (const sensor_msgs::ImageConstPtr& msg)
     source_depth.pop();
     source_depth_data.pop();
     dropped_frames++;
-  } 
+  }
   
   source_depth.push(depth);
   source_depth_data.push(depth_data);
-}
-
-
-#ifdef HAVE_IMUCAM
-///////////////////////////////////////////////////////////////////////////////
-void
-KinfuAppRos::frameCB (const imucam::Frame::ConstPtr& frame)
-{
-  if (quit()) return;
-  
-  if (!live_grabber) data_mutex.lock();
-  else if (!data_mutex.try_lock()) return;
-
-  //TBD: Kanoulas
-  //copyDepth(frame->depth);
-
-  if (source_frame.size() == max_data_queue) source_frame.pop();
-  source_frame.push(frame);
 
   data_mutex.unlock();
   data_ready_cond.notify_one();
 }
-#endif
+
+
+// #ifdef HAVE_IMUCAM
+// ///////////////////////////////////////////////////////////////////////////////
+// void
+// KinfuAppRos::frameCB (const imucam::Frame::ConstPtr& frame)
+// {
+//   std::cout << "KinfuAppRos::frameCB" << std::endl;
+// 
+//   if (quit()) return;
+//   
+//   if (!live_grabber) data_mutex.lock();
+//   else if (!data_mutex.try_lock()) return;
+// 
+//   //TBD: Kanoulas
+//   //copyDepth(frame->depth);
+// 
+//   if (source_frame.size() == max_data_queue) source_frame.pop();
+//   source_frame.push(frame);
+// 
+//   data_mutex.unlock();
+//   data_ready_cond.notify_one();
+// }
+// #endif
 
 ///////////////////////////////////////////////////////////////////////////////
 boost::signals2::connection
 KinfuAppRos::startCapture ()
 {
   boost::signals2::connection c;
-
+  
+  /*
   typedef boost::shared_ptr<pcl::io::openni2::DepthImage> DepthImagePtr;
   typedef boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ> > PointCloudPtr;
 
@@ -1424,18 +1503,19 @@ KinfuAppRos::startCapture ()
   boost::function<void (const DepthImagePtr&)> func =
     boost::bind(&KinfuAppRos::depthCB, this, _1);
   c = capture->registerCallback(func);
+  */
   
   //TBD: Point Cloud callback needs to be fixed
-  //boost::function<void (const PointCloudPtr&) > cloud_cb =
+  //boost::function<void (const PointCloudInPtr&) > cloud_cb =
   //  boost::bind (&KinfuAppRos::pointCloudCB, this, _1);
   //boost::signals2::connection cloud_connection =
   //  capture->registerCallback (cloud_cb);
 
 
-  #endif
+  //#endif
   
-  if (!triggered)
-    capture->start();
+  //if (!triggered)
+  //  capture->start();
   
   return c;
 }
@@ -1444,7 +1524,10 @@ KinfuAppRos::startCapture ()
 Affine3f
 KinfuAppRos::getBubblePose ()
 {
-  Affine3f bubble_pose = kinfu->getCameraPose ();
+  //std::cout << "DEBUG: KinfuAppRos::getBubblePose" << std::endl;
+  Eigen::Affine3f cam_pose;
+  kinfu->getCameraPose (cam_pose);
+  Affine3f bubble_pose = cam_pose;
 //  if (kinfu->getMovingVolumePolicy() == KinfuTracker::FIX_CAMERA_IN_VOLUME)
 //    bubble_pose.linear() = bubble_pose.linear() * bubble_rot;
 //  else
@@ -1457,31 +1540,35 @@ KinfuAppRos::getBubblePose ()
 void
 KinfuAppRos::updateMovingVolumeVectors ()
 {
-#ifdef HAVE_IMUCAM
-  if (current_frame && !(current_frame->um6_msgs.empty()))
-  {
-    Vector3f g_in_camera = 
-      current_frame->getCameraToWorld()->transpose() * Vector3f::UnitZ();
-    Affine3f camera_to_volume = kinfu->getCameraPose();
-    gravity = camera_to_volume.linear() * g_in_camera;
-  }
-#endif
+  //std::cout << "DEBUG: KinfuAppRos::updateMovingVolumeVectors" << std::endl;
+//#ifdef HAVE_IMUCAM
+//  if (current_frame && !(current_frame->um6_msgs.empty()))
+//  {
+//    Vector3f g_in_camera = 
+//      current_frame->getCameraToWorld()->transpose() * Vector3f::UnitZ();
+//    Affine3f camera_to_volume = kinfu->getCameraPose();
+//    gravity = camera_to_volume.linear() * g_in_camera;
+//  }
+//#endif
   
   if (estimate_down_from_gravity) down = gravity;
 
   int np = kinfu->getNumberOfPoses();
   if (np > 1)
-  {
+  {  
     //current pose of camera after tracking in current volume frame
-    Affine3f cam_pose = kinfu->getCameraPose(np-1);
+    Affine3f cam_pose;
+    kinfu->getCameraPose(cam_pose, np-1);
     double cam_time = kinfu->getTimestamp(np-1);
     
     //last camera pose in previous volume frame
-    Affine3f prev_cam_pose = kinfu->getCameraPose(np-2);
+    Affine3f prev_cam_pose;
+    kinfu->getCameraPose(prev_cam_pose, np-2);
     double prev_cam_time = kinfu->getTimestamp(np-2);
     
     //transform from current to previous volume frame
-    Affine3f vol_rel_pose = kinfu->getRelativeVolumePose(np-1);
+    Affine3f vol_rel_pose;
+    kinfu->getRelativeVolumePose(vol_rel_pose, np-1);
     
     //last camera pose in current volume frame
     prev_cam_pose = vol_rel_pose.inverse() * prev_cam_pose;
@@ -1511,9 +1598,8 @@ KinfuAppRos::updateMovingVolumeVectors ()
 bool
 KinfuAppRos::shouldQuit ()
 {
-
-  if (quit()) return true;
-
+  if (quit()) {return true;}
+  
   if (scene_cloud_view && scene_cloud_view->wasStopped())
     return true;
   if (current_cloud_view && current_cloud_view->wasStopped())
@@ -1521,12 +1607,12 @@ KinfuAppRos::shouldQuit ()
   if (image_view && image_view->wasStopped())
     return true;
 
-  #ifdef HAVE_IMUCAM
-  imucam::Source::Ptr source =
-    boost::dynamic_pointer_cast<imucam::Source>(capture);
-  if (source && source->atEnd())
-    return true;
-  #endif
+  //#ifdef HAVE_IMUCAM
+  //imucam::Source::Ptr source =
+  //  boost::dynamic_pointer_cast<imucam::Source>(capture);
+  //if (source && source->atEnd())
+  //  return true;
+  //#endif
 
   return false;
 }
@@ -1534,10 +1620,10 @@ KinfuAppRos::shouldQuit ()
 ///////////////////////////////////////////////////////////////////////////////
 bool
 KinfuAppRos::grab ()
-{
+{  
   bool has_data = false;
 
-  if (triggered) capture->start(); //trigger grabber
+  //if (triggered) capture->start(); //trigger grabber
   
   {
     boost::unique_lock<boost::mutex> lock (data_mutex);
@@ -1551,9 +1637,11 @@ KinfuAppRos::grab ()
     if (has_data)
     {
       PtrStepSz<const unsigned short> depth = source_depth.front();
+      //PtrStepSz<const KinfuTracker::PixelRGB> rgb24; //davidjones: ADDED FOR COLOR
       
       StopWatch timer;
       depth_device.upload (depth.data, depth.step, depth.rows, depth.cols);
+      //color_device_.upload(rgb24.data,rgb24.step,rgb24.rows,rgb24.cols);//davidjones: ADDED FOR COLOR
       upload_ms = timer.getTime ();
       
       viz_depth = depth;
@@ -1626,58 +1714,60 @@ KinfuAppRos::keyCB (const pcl::visualization::KeyboardEvent &e, void *cookie)
   if (!(e.keyDown())) return;
   
   //base class uses p, w, s, j, c, f, e, o, g, u, s, f, l, r
-  switch (key) {
-  case 27: case (int)'q': quit(true); break;
-  case (int)'t': scan = true; break;
-  case (int)'a': scan_mesh = true; break;
-  case (int)'h': printHelp(); break;
-  case (int)'m': scene_cloud_view->toggleExtractionMode(); break;
-  case (int)'n': scene_cloud_view->toggleNormals(); break;      
-  case (int)'c': scene_cloud_view->clearClouds(true); break;
-  case (int)'i': toggleCameraMode(); break;
-  case (int)'b':
-    scene_cloud_view->toggleCube(kinfu->volume().getSize()); break;
-  case (int)'7': case (int)'8':
-    scene_cloud_view->writeMesh(key-(int)'0'); break;
-  case (int)'1': case (int)'2': case (int)'3':
-    scene_cloud_view->writeCloud(key-(int)'0'); break;      
-  case (int)'x':
-    scan_volume = !scan_volume;
-    std::cout << "TSDF download "
-              << (scan_volume ? "enabled\n" : "disabled\n");
-    break;
-  case (int)'v':
-    std::cout << "Saving TSDF volume to tsdf_volume.dat... " << std::flush;
-    tsdf_volume_host->save("tsdf_volume.dat", true);
-    std::cout << "done (" << tsdf_volume_host->size() << " voxels)\n";
-    std::cout << "Saving TSDF volume to tsdf_cloud.pcd... " << std::flush;
-    io::savePCDFile<PointXYZI>("tsdf_cloud.pcd", *(tsdf_cloud), true);
-    std::cout << "done (" << tsdf_cloud->size() << " points)\n";
-    break;
-  case (int)'d': toggleShowCurentCloudInScene(); break;
-  case (int)'k': toggleShowCamera(); break;
-  case (int)'+': toggleShowBubble(); break;
-  case (int)'z': toggleShowBubbleFrusta(); break;
-  case (int)'y': toggleShowBubbleCloud(); break;
-  case (int)' ': togglePaused(); break;
-  default: break;
+  switch (key)
+  {
+    //case 27: case (int)'q': quit(true); break;
+    case (int)'q': quit(true); std::cout << "pressed q" << std::endl; break;
+    case (int)'t': scan = true; break;
+    case (int)'a': scan_mesh = true; break;
+    case (int)'h': printHelp(); break;
+    case (int)'m': scene_cloud_view->toggleExtractionMode(); break;
+    case (int)'n': scene_cloud_view->toggleNormals(); break;      
+    case (int)'c': scene_cloud_view->clearClouds(true); break;
+    case (int)'i': toggleCameraMode(); break;
+    case (int)'b':
+      scene_cloud_view->toggleCube(kinfu->volume().getSize()); break;
+    case (int)'7': case (int)'8':
+      scene_cloud_view->writeMesh(key-(int)'0'); break;
+    case (int)'1': case (int)'2': case (int)'3':
+      scene_cloud_view->writeCloud(key-(int)'0'); break;      
+    case (int)'x':
+      scan_volume = !scan_volume;
+      std::cout << "TSDF download "
+                << (scan_volume ? "enabled\n" : "disabled\n");
+      break;
+    case (int)'v':
+      std::cout << "Saving TSDF volume to tsdf_volume.dat... " << std::flush;
+      tsdf_volume_host->save("tsdf_volume.dat", true);
+      std::cout << "done (" << tsdf_volume_host->size() << " voxels)\n";
+      std::cout << "Saving TSDF volume to tsdf_cloud.pcd... " << std::flush;
+      io::savePCDFile<PointXYZI>("tsdf_cloud.pcd", *(tsdf_cloud), true);
+      std::cout << "done (" << tsdf_cloud->size() << " points)\n";
+      break;
+    case (int)'d': toggleShowCurentCloudInScene(); break;
+    case (int)'k': toggleShowCamera(); break;
+    case (int)'+': toggleShowBubble(); break;
+    case (int)'z': toggleShowBubbleFrusta(); break;
+    case (int)'y': toggleShowBubbleCloud(); break;
+    case (int)' ': togglePaused(); break;
+    default: break;
   }    
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void
-KinfuAppRos::mouseCB (const pcl::visualization::MouseEvent &e, void *cookie)
-{
-  return;
-}
+//////////////////////////////////////////////////////////////////////////////
+// void
+// KinfuAppRos::mouseCB (const pcl::visualization::MouseEvent &e, void *cookie)
+// {
+//   return;
+// }
 
-////////////////////////////////////////////////////////////////////////////////
-void
-KinfuAppRos::pointCB (const pcl::visualization::PointPickingEvent &e,
-                      void *cookie)
-{
-  return;
-}
+//////////////////////////////////////////////////////////////////////////////
+// void
+// KinfuAppRos::pointCB (const pcl::visualization::PointPickingEvent &e,
+//                       void *cookie)
+// {
+//   return;
+// }
 
 ///////////////////////////////////////////////////////////////////////////////
 void KinfuAppRos::setCudaDevice (int argc, char **argv)
@@ -1730,7 +1820,7 @@ KinfuAppRos::makeCapture (int argc, char **argv, bool &live, bool &trig)
   {
     if (pc::parse_argument(argc, argv, "-dev", openni_device) > 0)
     {
-      capture = new pcl::io::OpenNI2Grabber(openni_device);
+      //capture = new pcl::io::OpenNI2Grabber(openni_device);
       live = true;
     }
     else if (pc::parse_argument(argc, argv, "-oni", oni_file) > 0)
@@ -1769,7 +1859,7 @@ KinfuAppRos::makeCapture (int argc, char **argv, bool &live, bool &trig)
     }
     else
     {
-      capture = new pcl::io::OpenNI2Grabber();
+      //capture = new pcl::io::OpenNI2Grabber();
       live = true;
     }
   }
@@ -1785,20 +1875,37 @@ KinfuAppRos::makeCapture (int argc, char **argv, bool &live, bool &trig)
 bool
 KinfuAppRos::setInitialCameraPose (int argc, char **argv)
 {
+  // DEBUG
+  //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose START" << std::endl;
+  
   bool setcam = false;
   std::vector<float> camarg;
 
   if (pc::parse_x_arguments(argc, argv, "-campos", camarg) > 0)
   {
+    std::cout << "camarg[0]: " << camarg[0] << std::endl;
+    std::cout << "camarg[1]: " << camarg[1] << std::endl;
+    std::cout << "camarg[2]: " << camarg[2] << std::endl;
+    
     Vector3f pos(0, 0, 0);
     if (camarg.size() > 0) pos(0) = camarg[0];
     if (camarg.size() > 1) pos(1) = camarg[1];
     if (camarg.size() > 2) pos(2) = camarg[2];
-    Affine3f pose = kinfu->getCameraPose();
+    
+    //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose 0.1" << std::endl;
+    
+    Affine3f pose;
+    kinfu->getCameraPose (pose);
+    
+    //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose 0.2" << std::endl;
+
     pose.translation() = pos;
+    
     kinfu->setInitalCameraPose(pose);
     setcam = true;
   }
+  
+  //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose 1" << std::endl;
 
   camarg.clear();
   if (pc::parse_x_arguments(argc, argv, "-camaa", camarg) > 0)
@@ -1810,16 +1917,23 @@ KinfuAppRos::setInitialCameraPose (int argc, char **argv)
     if (camarg.size() > 2) axis(1) = camarg[2];
     if (camarg.size() > 3) axis(2) = camarg[3];
     AngleAxisf aa(angle, axis.normalized());
-    Affine3f pose = kinfu->getCameraPose();
+    Affine3f pose;
+    kinfu->getCameraPose (pose);
     pose.linear() = aa.toRotationMatrix();
     kinfu->setInitalCameraPose(pose);
     setcam = true;
   }
-
-  Affine3f pose = kinfu->getCameraPose();
+  
+  //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose 2" << std::endl;
+  
+  Affine3f pose;
+  kinfu->getCameraPose (pose);
   pc::print_highlight("initial camera pose\n");
   std::cout << pose.matrix() << std::endl;
-
+  
+  // DEBUG
+  //std::cout << "DEBUG: KinfuAppRos::setInitialCameraPose END" << std::endl;
+  
   return setcam;
 }
 
@@ -1827,6 +1941,8 @@ KinfuAppRos::setInitialCameraPose (int argc, char **argv)
 void
 KinfuAppRos::publishROSTopics ()
 {
+  //std::cout << "DEBUG: KinfuAppRos::publishROSTopics" << std::endl;
+  
   // Original point cloud
   DeviceArray2D<pcl::PointXYZ> cloud_device;
   kinfu->getLastFrameCloud (cloud_device);
@@ -1834,7 +1950,7 @@ KinfuAppRos::publishROSTopics ()
   original_rc_pc_ptr->width = cloud_device.cols();
   original_rc_pc_ptr->height = cloud_device.rows();
   original_rc_pc_ptr->is_dense = false;
-  original_rc_pc_ptr->header.frame_id = RANGE_SENSOR_FRAME; // set frame
+  original_rc_pc_ptr->header.frame_id = "KinFu_frame"; // set frame
   original_pc_pub_.publish (original_rc_pc_ptr);
   
   // For every side of the bubble box
@@ -1846,6 +1962,26 @@ KinfuAppRos::publishROSTopics ()
       bubble_pc_pub_.publish (bubble_rc_cloud_ptr[i]);
     }
   }
+  
+  // TF transforms
+  Eigen::Affine3f cam_pose;
+  kinfu->getCameraPose (cam_pose);
+  Eigen::Vector3f cam_position;
+  Eigen::Matrix3f cam_orientation;
+  geometry_msgs::Pose pose;
+  cam_position = cam_pose.translation();
+  cam_orientation = cam_pose.linear();
+  Eigen::Quaternionf q(cam_orientation);
+
+  tf::Quaternion q_tf (q.x(),q.y(),q.z(),q.w());
+  kinfu_cam_tf_.setOrigin (tf::Vector3 (cam_position(0),
+                                        cam_position(1),
+                                        cam_position(2)));
+  kinfu_cam_tf_.setRotation (q_tf);
+  //tf_br_.sendTransform(tf::StampedTransform(kinfu_cam_tf_,
+  //                                          ros::Time::now(),
+  //                                          "KinFu_frame",
+  //                                          RANGE_SENSOR_FRAME));
 }
 
 
@@ -1853,43 +1989,29 @@ KinfuAppRos::publishROSTopics ()
 void
 KinfuAppRos::mainLoop ()
 {
-  // Initialize ROS
-  original_pc_pub_ =
-    node_.advertise<sensor_msgs::PointCloud2> ("original_point_cloud", 1);
-  
-  bubble_pc_pub_ =
-    node_.advertise<sensor_msgs::PointCloud2> ("bubble_point_cloud", 1);
-  
-  depth_image_pub_ =
-    node_.advertise<sensor_msgs::Image> ("input_depth_image", 1);
-    
-  depth_image_sub_ = node_.subscribe ("/camera/depth/image_raw", 1,
-                                      &KinfuAppRos::depthImageCB, this);
- 
-  // Point cloud creation
-  original_rc_pc_ptr = PointCloud<PointXYZ>::Ptr(new PointCloud<PointXYZ>);
-  
+  /*
   #ifdef HAVE_IMUCAM
   imucam::NonblockingConsole nonblocking_console;
   #endif
-
-  // Start grabber
+  */
+  
+  // Start the grabber: capturing depth images
   boost::signals2::connection c = startCapture ();
 
   //run loop
   int num_newlines = 0;
-  while (!shouldQuit ())
+  while (!shouldQuit () || ros::ok())
   {
     StopWatch timer;
     
     bool has_data = false, has_image = false;
     
-    #ifdef HAVE_IMUCAM
-    //read keyboard hits from console
-    int key = nonblocking_console.getch();
-    if (key != EOF)
-      keyCB(imucam::Viewer::makeKeyEvent(key), reinterpret_cast<void*>(1));
-    #endif
+    //#ifdef HAVE_IMUCAM
+    ////read keyboard hits from console
+    //int key = nonblocking_console.getch();
+    //if (key != EOF)
+    //  keyCB(imucam::Viewer::makeKeyEvent(key), reinterpret_cast<void*>(1));
+    //#endif
     
     has_data = has_image = false;
     timestamp = NAN;
@@ -1931,9 +2053,8 @@ KinfuAppRos::mainLoop ()
     track_ms = timer.getTime() - track_ms;
     
     if (single_step) paused = true;
-
+    
 skip_grab_and_track:
-
     //do any requested scans
     scan_ms = timer.getTime();
     execScan();
@@ -1942,20 +2063,20 @@ skip_grab_and_track:
     //bubble raycast
     Affine3f bubble_pose = getBubblePose();
     bubble_raycast_ms = timer.getTime();
-    execBubbleRaycast(bubble_pose);
+    execBubbleRaycast (bubble_pose);
     bubble_raycast_ms = timer.getTime() - bubble_raycast_ms;
-
+    
     //hook for extensions
     exec_ext_ms = timer.getTime();
     execExt();
     exec_ext_ms = timer.getTime() - exec_ext_ms;
-
+    
     //visualization
     viz_ms = timer.getTime();
     if (viz)
     {
       execViz(has_data, has_image, bubble_pose);
-
+    
       spinViewers();
       
       if (reset_camera_pending)
@@ -1965,7 +2086,7 @@ skip_grab_and_track:
       }
     }
     viz_ms = timer.getTime() - viz_ms;
-
+    
     // Calculate accounted time and FPS
     accounted_ms = upload_ms + track_ms + bubble_raycast_ms;
     exec_ms += timer.getTime();
@@ -1978,7 +2099,7 @@ skip_grab_and_track:
       exec_ms = 0;
     }
     execs++;
-
+    
     // Print status
     if (print_status)
     {
@@ -1992,23 +2113,28 @@ skip_grab_and_track:
     
     // Spin ROS nodes
     ros::spinOnce ();
-
+    
+    if (shouldQuit ()) {break;}
+    
   } //run loop
   
+  // Stop ROS
+  ros::shutdown();
   
+  // dkanoulas: uncommented
   if (print_status && (execs > 0))
     pc::print_info("\033[%dB\n", num_newlines); //VT100 down n lines and newline
-
+  
   last_status_num_newlines = 0;
   
-  if (!triggered) capture->stop();
+  //if (!triggered) capture->stop();
+  //c.disconnect();
   
-  c.disconnect();
-
   if (eval) kinfu->saveAllPoses();
-
   std::cout << "moving volume: max latency " << max_latency << "ms\n";
   kinfu->printMovingVolumeStats();
-
+  
   quit(true); //signal any other running threads
+
+  
 }

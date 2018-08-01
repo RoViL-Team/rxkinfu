@@ -101,6 +101,14 @@ rxkinfu::RayCaster::generateSceneView(View& view) const
   generateSceneView(view, volume_size_ * (-3.f));
 }
 
+//davidjones: MODIFIED FOR COLOR
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//void
+//rxkinfu::RayCaster::generateSceneView(View& view, View color_device_in) const
+//{
+//  generateSceneView(view, color_device_in, volume_size_ * (-3.f));
+//}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 rxkinfu::RayCaster::generateSceneView(View& view, const Vector3f& light_source_pose) const
@@ -112,6 +120,19 @@ rxkinfu::RayCaster::generateSceneView(View& view, const Vector3f& light_source_p
   view.create(rows, cols);
   device::generateImage (vertex_map_, normal_map_, light, view);
 }
+
+//davidjones: MODIFIED FOR COLOR
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//void
+//rxkinfu::RayCaster::generateSceneView(View& view, View color_device_in, const Vector3f& light_source_pose) const
+//{
+//  device::LightSource light;
+//  light.number = 1;  
+//  light.pos[0] = device_cast<const float3>(light_source_pose);
+//  
+//  view.create(rows, cols);
+//  device::generateImage (vertex_map_, normal_map_, color_device_in, light, view);
+//}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void

@@ -50,6 +50,10 @@ using namespace pcl;
 using namespace rxkinfu;
 namespace pc = pcl::console;
 
+/** \brief The main function for running the RXKinFu with ROS.
+  *
+  * \author Dimitrios Kanoulas (dkanoulas@gmail.com)
+  */
 int main (int argc, char **argv)
 {
   // initialize ROS
@@ -58,7 +62,7 @@ int main (int argc, char **argv)
   
   if (pc::find_switch(argc, argv, "-h"))
   {
-    KinfuAppRos::usageHelp();
+    KinfuAppRos::usageHelp("KinfuAppRos");
     
     return 0;
   }
@@ -70,7 +74,8 @@ int main (int argc, char **argv)
   
   try
   {
-    KinfuAppRos (argc, argv, node).mainLoop();
+    // run the main loop
+    KinfuAppRos (argc, argv, node).mainLoop ();
   }
   catch (const PCLException &e) {
     std::cerr << "PCLException: " << e.what() << std::endl;

@@ -1,0 +1,19 @@
+<!-- Test  (test_rxkinfu_ros.cpp).                                      -->
+<!-- Author: Dimitrios Kanoulas (dkanoulas@gmail.com)                   -->
+<!-- Run: > roslaunch rxkinfu_ros test_rxkinfu_ros_centauro_exp2.launch -->
+
+<launch>
+  <node pkg="rxkinfu_ros"
+        name="rxkinfu_ros_test"
+        type="rxkinfu_ros_test"
+        respawn="false"
+        output="screen"
+        args="-sc 0 -bf -bc -br 100,0,0,0,0,0 -bo 0,-1.5,0 -drawcam -drawdown
+              -mvfd -mvcnn -mvcv -mvdthresh 1.0 -bubcam -bubcamloc
+              -campos 2,2,0 -vs 4 -b"
+  />
+  
+  <!-- Load params from the YAML file to the parameter server -->
+  <rosparam file="$(find rxkinfu_ros)/config/rxkinfu_ros.yaml" command="load" />
+  
+</launch>

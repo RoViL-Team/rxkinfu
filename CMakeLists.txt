@@ -1,3 +1,7 @@
+# rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics
+#
+# Author: Dimitrios Kanoulas (dkanoulas@gmail.com)
+
 cmake_minimum_required(VERSION 2.8.12)
 
 if(COMMAND cmake_policy)

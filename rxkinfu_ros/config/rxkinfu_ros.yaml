@@ -1,0 +1,9 @@
+name: rxkinfu_ros
+
+### rxkinfu general settings ##################################################
+rxkinfu_ros_general:
+  noicp: false
+
+rxkinfu_ros_topics:
+  RANGE_SENSOR_FRAME: "/camera_rgb_optical_frame"
+  KINFU_FRAME: "/KinFu_frame"

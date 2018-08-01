@@ -353,7 +353,9 @@ void KinfuApp::setupViz(bool cc, bool rv, bool dv)
 
   if (cc) {
     current_cloud_view.reset(makeCurrentCloudView(viz));
-    current_cloud_view->setViewerPose(kinfu->getCameraPose());
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    current_cloud_view->setViewerPose (cam_pose);
     current_cloud_view->registerKeyboardCallback(&KinfuApp::keyCB, *this);
     current_cloud_view->registerMouseCallback (&KinfuApp::mouseCB, *this);
     current_cloud_view->registerPointPickingCallback (&KinfuApp::pointCB, *this);
@@ -386,7 +388,11 @@ void KinfuApp::setIndependentCameraMode() {
   if (!independent_camera || bubble_camera) {
     reset_camera_pending = true;
     if (kinfu && scene_cloud_view)
-      scene_cloud_view->setViewerPose(kinfu->getCameraPose());
+    {
+      Eigen::Affine3f cam_pose;
+      kinfu->getCameraPose (cam_pose);
+      scene_cloud_view->setViewerPose (cam_pose);
+    }
     independent_camera = true;
     bubble_camera = false;
     //std::cout << "Independent camera mode\n";
@@ -603,8 +609,11 @@ void KinfuApp::initBubble() {
   bubble_camera_viewpoint.linear().col(1) = cam_y;
   bubble_camera_viewpoint.linear().col(2) = cam_z;
 
-  if (kinfu) {
-    Quaternionf q(kinfu->getCameraPose(0).rotation());
+  if (kinfu)
+  {
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose, 0);
+    Quaternionf q (cam_pose.rotation());
     bubble_rot = q.inverse();
   }
 }
@@ -686,7 +695,11 @@ void KinfuApp::execViz(bool has_data, bool has_image,
   if (bubble_camera)
     scene_cloud_view->setViewerPose(bubble_pose * bubble_camera_viewpoint);
   else if (!independent_camera)
-    scene_cloud_view->setViewerPose(kinfu->getCameraPose());
+  {
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    scene_cloud_view->setViewerPose (cam_pose);
+  }
   
   // show incoming depth image /////////////////////////////////////////////////
 
@@ -695,9 +708,12 @@ void KinfuApp::execViz(bool has_data, bool has_image,
 
   // show raycast image ////////////////////////////////////////////////////////
 
-  if (has_image) {
-    Affine3f pose = scene_cloud_view->getViewerPose();
-    image_view->show(*kinfu, (independent_camera) ? &pose : 0);
+  if (has_image)
+  {
+    Affine3f pose;
+    scene_cloud_view->getViewerPose (pose);
+    image_view->show(*kinfu, (independent_camera) ? &pose : 0); //davidjones: ADDED FOR COLOR
+    //image_view->show(*kinfu, color_device_, (independent_camera) ? &pose : 0); //davidjones: ADDED FOR COLOR
   }
 
   // show current cloud ////////////////////////////////////////////////////////
@@ -715,10 +731,15 @@ void KinfuApp::execViz(bool has_data, bool has_image,
   // show depth camera frustum /////////////////////////////////////////////////
 
   if (show_camera && independent_camera)
-    scene_cloud_view->showCamera(kinfu->getCameraPose(), "depth_cam",
+  {
+    Eigen::Affine3f cam_pose;
+    kinfu->getCameraPose (cam_pose);
+    scene_cloud_view->showCamera(cam_pose, "depth_cam",
                                  cam_near, cam_far,
                                  0.1f); //axes lengths
-  else scene_cloud_view->removeCamera("depth_cam");
+  }
+  else
+    scene_cloud_view->removeCamera("depth_cam");
 
   // show bubble cloud /////////////////////////////////////////////////////////
 
@@ -888,8 +909,10 @@ boost::signals2::connection KinfuApp::startCapture() {
   return c;
 }
 
-Affine3f KinfuApp::getBubblePose() {
-  Affine3f bubble_pose = kinfu->getCameraPose();
+Affine3f KinfuApp::getBubblePose ()
+{
+  Affine3f bubble_pose;
+  kinfu->getCameraPose (bubble_pose);
 //  if (kinfu->getMovingVolumePolicy() == KinfuTracker::FIX_CAMERA_IN_VOLUME)
 //    bubble_pose.linear() = bubble_pose.linear() * bubble_rot;
 //  else
@@ -915,15 +938,18 @@ void KinfuApp::updateMovingVolumeVectors() {
   if (np > 1) {
     
     //current pose of camera after tracking in current volume frame
-    Affine3f cam_pose = kinfu->getCameraPose(np-1);
+    Affine3f cam_pose;
+    kinfu->getCameraPose(cam_pose, np-1);
     double cam_time = kinfu->getTimestamp(np-1);
     
     //last camera pose in previous volume frame
-    Affine3f prev_cam_pose = kinfu->getCameraPose(np-2);
+    Affine3f prev_cam_pose;
+    kinfu->getCameraPose(prev_cam_pose, np-2);
     double prev_cam_time = kinfu->getTimestamp(np-2);
     
     //transform from current to previous volume frame
-    Affine3f vol_rel_pose = kinfu->getRelativeVolumePose(np-1);
+    Affine3f vol_rel_pose;
+    kinfu->getRelativeVolumePose(vol_rel_pose, np-1);
     
     //last camera pose in current volume frame
     prev_cam_pose = vol_rel_pose.inverse() * prev_cam_pose;
@@ -980,9 +1006,11 @@ bool KinfuApp::grab() {
     if (has_data) {
       
       PtrStepSz<const unsigned short> depth = source_depth.front();
+      //PtrStepSz<const KinfuTracker::PixelRGB> rgb24; //davidjones: ADDED FOR COLOR
       
       StopWatch timer;
       depth_device.upload(depth.data, depth.step, depth.rows, depth.cols);
+      //color_device_.upload(rgb24.data,rgb24.step,rgb24.rows,rgb24.cols);//davidjones: ADDED FOR COLOR
       upload_ms = timer.getTime();
       
       viz_depth = depth;
@@ -1012,8 +1040,8 @@ bool KinfuApp::grab() {
     timestamp = imucam::FPS::ptimeToUS(current_frame->time)/1e6;
 #endif
   
-  if (isnan(timestamp)) {
-    if (!isnan(timestamp_was)) timestamp = timestamp_was + DEF_FRAME_MS/1e3;
+  if (std::isnan(timestamp)) {
+    if (!std::isnan(timestamp_was)) timestamp = timestamp_was + DEF_FRAME_MS/1e3;
     else { timestamp_was = 0; timestamp = DEF_FRAME_MS/1e3; }
   }
   
@@ -1529,7 +1557,8 @@ bool KinfuApp::setInitialCameraPose(int argc, char **argv) {
     if (camarg.size() > 0) pos(0) = camarg[0];
     if (camarg.size() > 1) pos(1) = camarg[1];
     if (camarg.size() > 2) pos(2) = camarg[2];
-    Affine3f pose = kinfu->getCameraPose();
+    Affine3f pose;
+    kinfu->getCameraPose (pose);
     pose.translation() = pos;
     kinfu->setInitalCameraPose(pose);
     setcam = true;
@@ -1544,13 +1573,15 @@ bool KinfuApp::setInitialCameraPose(int argc, char **argv) {
     if (camarg.size() > 2) axis(1) = camarg[2];
     if (camarg.size() > 3) axis(2) = camarg[3];
     AngleAxisf aa(angle, axis.normalized());
-    Affine3f pose = kinfu->getCameraPose();
+    Affine3f pose;
+    kinfu->getCameraPose (pose);
     pose.linear() = aa.toRotationMatrix();
     kinfu->setInitalCameraPose(pose);
     setcam = true;
   }
 
-  Affine3f pose = kinfu->getCameraPose();
+  Affine3f pose;
+  kinfu->getCameraPose (pose);
   pc::print_highlight("initial camera pose\n");
   std::cout << pose.matrix() << std::endl;
 

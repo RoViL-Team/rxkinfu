@@ -1,3 +1,7 @@
+# rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics
+#
+# Author: Dimitrios Kanoulas (dkanoulas@gmail.com)
+
 cmake_minimum_required(VERSION 2.8.3)
 project(rxkinfu_ros)
 #set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -10,7 +14,10 @@ find_package(catkin REQUIRED COMPONENTS roscpp
                                         rospy
                                         roslib
                                         std_msgs
-                                        rxkinfu)
+                                        rxkinfu
+                                        tf
+                                        image_transport
+                                        cv_bridge)
 
 catkin_package(
       CATKIN_DEPENDS roscpp rospy roslib std_msgs
@@ -22,7 +29,10 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
 #find_package(Eigen3 REQUIRED)
-find_package(PCL 1.7 REQUIRED COMPONENTS common
+find_package(PCL 1.8 REQUIRED COMPONENTS common
+                                         console
+                                         cv_bridge
+                                         image_transport
                                          io
                                          filter
                                          features
@@ -107,6 +117,9 @@ catkin_package(
                  rospy
                  roslib
                  rxkinfu
+                 tf
+                 image_transport
+                 cv_bridge
   DEPENDS system_lib
 )
 
@@ -117,7 +130,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include include/${PROJECT_NAME}/
-                    ${Eigen_INCLUDE_DIRS})
+                    ${Eigen_INCLUDE_DIRS}
+                    ${PCL_INCLUDE_DIRS})
 
 include_directories(include ${catkin_INCLUDE_DIRS}
                             ${boost_INCLUDE_DIRS}
@@ -128,10 +142,12 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 ## Specify additional locations of header files
 set(HEADERS
+  #include/${PROJECT_NAME}/pc_to_di.h
   include/${PROJECT_NAME}/kinfu_app_ros.h
 )
 
 set(SOURCES
+  #src/pc_to_di.cpp
   src/kinfu_app_ros.cpp
   src/rxkinfu_ros.cpp
 )
@@ -142,11 +158,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 ## Declare a cpp executable
 add_executable(rxkinfu_ros_test src/rxkinfu_ros.cpp)
+#add_executable(pc_to_di src/pc_to_di.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} rxkinfu)
 add_dependencies(rxkinfu_ros_test ${catkin_EXPORTED_TARGETS} rxkinfu)
+#add_dependencies(pc_to_di ${catkin_EXPORTED_TARGETS} rxkinfu)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}
@@ -156,6 +174,10 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}
 target_link_libraries(rxkinfu_ros_test ${catkin_LIBRARIES}
                                        ${PCL_LIBRARIES}
                                        ${PROJECT_NAME})
+
+#target_link_libraries(pc_to_di ${catkin_LIBRARIES}
+#                               ${PCL_LIBRARIES}
+#                               ${PROJECT_NAME})
 
 #############
 ## Install ##

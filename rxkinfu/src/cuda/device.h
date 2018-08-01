@@ -241,7 +241,18 @@ namespace rxkinfu
       */
     void 
     generateImage (const MapArr& vmap, const MapArr& nmap, const LightSource& light, PtrStepSz<uchar3> dst);
-
+    
+    //davidjones: MODIFIED FOR COLOR
+    /** \brief Renders 3D image of the scene
+      * \param[in] vmap vetex map
+      * \param[in] nmap normals map
+      * \param[in] colorsmap colors map
+      * \param[in] light poase of light source
+      * \param[out] dst buffer where image is generated
+      */
+    //void
+    //generateImage (const MapArr& vmap, const MapArr& nmap, PtrStepSz<uchar3> colormap,
+    //               const LightSource& light, PtrStepSz<uchar3> dst);
 
     /** \brief Renders depth image from give pose
       * \param[in] vmap inverse camera rotation
