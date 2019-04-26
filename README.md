@@ -46,7 +46,7 @@ Both sub-folders have excecutables and launch files.
 ### Citation
 If you use this package in your own work, please cite our paper:
 
-"rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics", Dimitrios Kanoulas, Nikos G. Tsagarakis, and Marsette Vona.
+Dimitrios Kanoulas, Nikos G. Tsagarakis, and Marsette Vona, "rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics", IEEE/RAS International Conference on Humanoid Robots (Humanoids), 2018.
 
 ### Possible Errors
 1. RGB-D USB Communication through OpenNI is not working:
