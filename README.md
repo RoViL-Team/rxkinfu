@@ -23,7 +23,7 @@ This includes two main sub-folders (and one auxiliary sub-folders); the rxKinFu 
 ### Publications
 The package is based on two papers:
 
-1. "**rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics**", Dimitrios Kanoulas, Nikos G. Tsagarakis, and Marsette Vona (under submission).
+1. "**rxKinFu: Moving Volume KinectFusion for 3D Perception and Robotics**", Dimitrios Kanoulas, Nikos G. Tsagarakis, and Marsette Vona, IEEE/RAS International Conference on Humanoid Robots (Humanoids), 2018.
 
 2. "**Moving Volume KinectFusion**", Henry Roth, Marsette Vona, 2012.
 
